@@ -67,8 +67,8 @@ public class BlazeDB {
 
 	public static Statement parseSQLFromFilename(String filename) {
 		try {
-			return CCJSqlParserUtil.parse(new FileReader(filename));
-//            return CCJSqlParserUtil.parse("SELECT Course.cid, Student.name FROM Course, Student WHERE Student.sid = 3");
+//			return CCJSqlParserUtil.parse(new FileReader(filename));
+            return CCJSqlParserUtil.parse("SELECT Student.A FROM Student WHERE Student.A > 1 AND Student.B >= 100");
 		} catch (Exception e) {
 			System.err.println("Exception occurred during parsing");
 			e.printStackTrace();

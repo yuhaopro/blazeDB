@@ -9,10 +9,16 @@ import java.util.List;
  * You will need to modify this class, obviously :).
  */
 public class Tuple extends HashMap<String, Integer> {
+    private final String tableName;
     public Tuple(List<String> row, String tableName) {
+        this.tableName = tableName;
         List<String> tableSchema = DatabaseCatalog.getInstance().getTableSchema(tableName);
         for (int i = 0; i < row.size(); i++) {
             this.put(tableSchema.get(i).trim(), Integer.valueOf(row.get(i).trim()));
         }
+    }
+
+    public String getTableName() {
+        return tableName;
     }
 }
