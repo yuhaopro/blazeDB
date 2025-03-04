@@ -91,8 +91,8 @@ public class BlazeExpressionDeParser extends ExpressionDeParser {
     @Override
     public void visit(Column tableColumn) {
         super.visit(tableColumn);
-        String columnName = tableColumn.getColumnName();
-        Integer columnValue = tuple.get(columnName);
+        String columnName = tableColumn.toString();
+        Integer columnValue = tuple.getLookup().get(columnName);
         valueStack.push(columnValue);
     }
 

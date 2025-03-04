@@ -27,7 +27,10 @@ public class SelectOperator extends Operator {
     @Override
     public Tuple getNextTuple() {
         Tuple tuple;
+
+        // keeps fetching for a tuple until it matches the condition
         while ((tuple = child.getNextTuple()) != null) {
+            // tuple.print();
             expressionDeParser.setTuple(tuple);
             expression.accept(expressionDeParser);
             if (expressionDeParser.getOutput()) {

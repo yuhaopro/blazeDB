@@ -29,7 +29,9 @@ public class ScanOperator extends Operator {
     public Tuple getNextTuple() {
         if (rowSource.hasNext()) {
             List<String> row = rowSource.next();
-            return new Tuple(row, tableName);
+            Tuple tuple = new Tuple(row, tableName);
+            tuple.print();
+            return tuple;
         }
         // if no more tuple, return null
         return null;
