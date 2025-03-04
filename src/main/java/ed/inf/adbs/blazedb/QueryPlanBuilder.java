@@ -37,6 +37,9 @@ public class QueryPlanBuilder {
          }
         ProjectOperator projectOperator = new ProjectOperator(selectItemsInString);
         Expression expression = query.getPlainSelect().getWhere();
+
+
+        // select operator may not be created if there is no expression!
         SelectOperator selectOperator = new SelectOperator(expression);
         String table = query.getPlainSelect().getFromItem().toString();
         ScanOperator scanOperator = new ScanOperator(table);

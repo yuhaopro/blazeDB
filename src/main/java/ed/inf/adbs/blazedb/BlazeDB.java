@@ -72,8 +72,8 @@ public class BlazeDB {
 
     public static Statement parseSQLFromFilename(String filename) {
         try {
-//			return CCJSqlParserUtil.parse(new FileReader(filename));
-            return CCJSqlParserUtil.parse("SELECT Student.A, Student.B FROM Student WHERE Student.A > 1 AND Student.B >= 100");
+			return CCJSqlParserUtil.parse(new FileReader(filename));
+//            return CCJSqlParserUtil.parse("SELECT Student.A, Student.B FROM Student WHERE Student.A > 1 AND Student.B >= 100");
         } catch (Exception e) {
             System.err.println("Exception occurred during parsing");
             e.printStackTrace();
@@ -98,7 +98,7 @@ public class BlazeDB {
             // Iterate over the tuples produced by root
             Tuple tuple = root.getNextTuple();
             while (tuple != null) {
-                String csv = String.join(",", tuple.sortRowByColumnOrderInString());
+                String csv = String.join(", ", tuple.sortRowByColumnOrderInString());
                 writer.write(csv);
                 writer.newLine();
                 tuple = root.getNextTuple();

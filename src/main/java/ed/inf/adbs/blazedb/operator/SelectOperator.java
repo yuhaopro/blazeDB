@@ -30,6 +30,10 @@ public class SelectOperator extends Operator {
 
         // keeps fetching for a tuple until it matches the condition
         while ((tuple = child.getNextTuple()) != null) {
+
+            if (expression == null) {
+                return tuple;
+            }
             // tuple.print();
             expressionDeParser.setTuple(tuple);
             expression.accept(expressionDeParser);
