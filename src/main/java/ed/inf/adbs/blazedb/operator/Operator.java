@@ -2,6 +2,9 @@ package ed.inf.adbs.blazedb.operator;
 
 import ed.inf.adbs.blazedb.Tuple;
 
+import java.io.FileNotFoundException;
+import java.io.IOException;
+
 /**
  * The abstract Operator class for the iterator model.
  *
@@ -18,5 +21,5 @@ public abstract class Operator {
     /**
      * Resets the iterator to the start.
      */
-    public abstract void reset();
+    public abstract void reset() throws IOException;
 }

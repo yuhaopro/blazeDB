@@ -1,13 +1,14 @@
 package ed.inf.adbs.blazedb;
 
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.BufferedWriter;
-import java.io.IOException;
+import java.io.*;
+import java.util.List;
+
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.Select;
 import ed.inf.adbs.blazedb.operator.Operator;
+
+import javax.management.Query;
 
 /**
  * Lightweight in-memory database system.
@@ -18,19 +19,45 @@ import ed.inf.adbs.blazedb.operator.Operator;
  */
 public class BlazeDB {
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws FileNotFoundException {
 
 		if (args.length != 3) {
 			System.err.println("Usage: BlazeDB database_dir input_file output_file");
 			return;
 		}
 
+		// get inputs
 		String databaseDir = args[0];
 		String inputFile = args[1];
 		String outputFile = args[2];
 
-		// Just for demonstration, replace this function call with your logic
-		parsingExample(inputFile);
+		// parsing -> convert sql query to java object
+		Statement statement = parseSQLFromFilename(inputFile);
+
+//		QueryPlan[] queryPlans = buildQueryPlans(statement);
+//		QueryPlan chosenQueryPlan = selectOptimalQueryPlan(queryPlans);
+//		execute(chosenQueryPlan.root, outputFile);
+
+		if (statement == null) {
+			System.err.println("Statement is empty!");
+			return;
+		}
+		Select select = (Select) statement;
+
+		System.out.println("Statement: " + select);
+		System.out.println("SELECT items: " + select.getPlainSelect().getSelectItems());
+		System.out.println("Tables: " + select.getPlainSelect().getFromItem() + select.getPlainSelect().getJoins());
+		System.out.println("WHERE expression: " + select.getPlainSelect().getWhere());
+
+		List<QueryPlan> queryPlans = new QueryPlanBuilder((Select) select).build();
+		QueryPlan queryPlan = new QueryOptimizer(queryPlans).optimize();
+		execute(queryPlan.getRoot(), outputFile);
+
+		// tables we need to scan -> FROM clause
+		// selection predicates -> WHERE clause
+		// join operator -> JOIN clause
+		// projection operator -> SELECT *, column.a, etc
+
 	}
 
 	/**
@@ -38,21 +65,18 @@ public class BlazeDB {
 	 * from a file or a string and prints the SELECT and WHERE clauses to screen.
 	 */
 
-	public static void parsingExample(String filename) {
+	public static Statement parseSQLFromFilename(String filename) {
 		try {
-			Statement statement = CCJSqlParserUtil.parse(new FileReader(filename));
-//            Statement statement = CCJSqlParserUtil.parse("SELECT Course.cid, Student.name FROM Course, Student WHERE Student.sid = 3");
-			if (statement != null) {
-				Select select = (Select) statement;
-				System.out.println("Statement: " + select);
-				System.out.println("SELECT items: " + select.getPlainSelect().getSelectItems());
-				System.out.println("WHERE expression: " + select.getPlainSelect().getWhere());
-			}
+			return CCJSqlParserUtil.parse(new FileReader(filename));
+//            return CCJSqlParserUtil.parse("SELECT Course.cid, Student.name FROM Course, Student WHERE Student.sid = 3");
 		} catch (Exception e) {
 			System.err.println("Exception occurred during parsing");
 			e.printStackTrace();
+			return null;
 		}
+
 	}
+	
 
 	/**
 	 * Executes the provided query plan by repeatedly calling `getNextTuple()`
@@ -69,11 +93,15 @@ public class BlazeDB {
 			// Iterate over the tuples produced by root
 			Tuple tuple = root.getNextTuple();
 			while (tuple != null) {
-				writer.write(tuple.toString());
+				String csv = String.join(",", tuple.values()
+						.stream()
+						.map(Object::toString) // Convert each value to a string
+						.toArray(String[]::new));
+				writer.write(csv);
 				writer.newLine();
 				tuple = root.getNextTuple();
 			}
-
+			root.reset();
 			// Close the writer
 			writer.close();
 		}
