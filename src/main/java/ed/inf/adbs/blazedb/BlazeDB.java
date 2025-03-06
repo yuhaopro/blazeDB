@@ -37,10 +37,6 @@ public class BlazeDB {
         // parsing -> convert sql query to java object
         Statement statement = parseSQLFromFilename(inputFile);
 
-//		QueryPlan[] queryPlans = buildQueryPlans(statement);
-//		QueryPlan chosenQueryPlan = selectOptimalQueryPlan(queryPlans);
-//		execute(chosenQueryPlan.root, outputFile);
-
         if (statement == null) {
             System.err.println("Statement is empty!");
             return;
@@ -54,8 +50,8 @@ public class BlazeDB {
         System.out.println("Tables: " + tableList);
         System.out.println("WHERE expression: " + select.getPlainSelect().getWhere());
 
-        List<QueryPlan> queryPlans = new QueryPlanBuilder((Select) select).build();
-        QueryPlan queryPlan = new QueryOptimizer(queryPlans).optimize();
+        QueryPlan queryPlan = new QueryPlanBuilder((Select) select).build();
+//        QueryPlan queryPlan = new QueryOptimizer(queryPlans).optimize();
         execute(queryPlan.getRoot(), outputFile);
 
         // tables we need to scan -> FROM clause

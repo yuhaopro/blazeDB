@@ -1,63 +1,141 @@
 package ed.inf.adbs.blazedb;
 
-import ed.inf.adbs.blazedb.operator.Operator;
-import ed.inf.adbs.blazedb.operator.ProjectOperator;
-import ed.inf.adbs.blazedb.operator.ScanOperator;
-import ed.inf.adbs.blazedb.operator.SelectOperator;
+import ed.inf.adbs.blazedb.operator.*;
 import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
-import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.util.TablesNamesFinder;
 
-import javax.swing.plaf.nimbus.State;
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class QueryPlanBuilder {
-    private Select query;
-    private List<QueryPlan> queryPlans = new ArrayList<QueryPlan>();
-
+    private HashMap<String, ScanOperator> scanOperators = new LinkedHashMap<String, ScanOperator>();
+    private List<String> tableOrder = new ArrayList<String>();
+    private ProjectOperator projectOperator;
+    private HashMap<String, SelectOperator> selectOperators = new HashMap<String, SelectOperator>();
+    private ExpressionSplitter expressionSplitter;
+    // join key format {left_table_name.right_table_name}
+    private HashMap<String, JoinOperator> joinOperators = new HashMap<String, JoinOperator>();
 
     public QueryPlanBuilder(Select query) {
-        this.query = query;
-    }
+        // parse SELECT
+        List<SelectItem<?>> selectItems = query.getPlainSelect().getSelectItems();
+        List<String> selectItemsInString = new ArrayList<String>();
+        for (SelectItem<?> selectItem : selectItems) {
+            selectItemsInString.add(selectItem.toString());
+        }
 
-    public List<QueryPlan> build() throws FileNotFoundException {
+        if (!selectItemsInString.contains("*")) {
+            projectOperator = new ProjectOperator(selectItemsInString);
+        }
 
+        // parse tables
+        List<String> tables = getTablesFromQuery(query);
+        for (String table : tables) {
+            try {
+                scanOperators.put(table, new ScanOperator(table));
+                tableOrder.add(table);
+            } catch (FileNotFoundException e) {
+                System.err.println(e.getMessage());
+            }
+        }
 
-        // projecting the
-        Operator root;
-         List<SelectItem<?>> selectItems = query.getPlainSelect().getSelectItems();
-         List<String> selectItemsInString = new ArrayList<String>();
-         for (SelectItem<?> selectItem : selectItems) {
-             selectItemsInString.add(selectItem.toString());
-         }
-        ProjectOperator projectOperator = new ProjectOperator(selectItemsInString);
+        // parse WHERE
         Expression expression = query.getPlainSelect().getWhere();
+        // extract JOIN conditions
+        // extract Selection for a single table
+        // exit the selectOperator
+        if (expression == null) {
+            return;
+        }
+
+        ExpressionSplitter expressionSplitter = new ExpressionSplitter(expression);
+        expressionSplitter.split();
+
+        // get the final expression that doesn't have
+        SplitExpression startingExpression = expressionSplitter.getOutputStack().pop();
+        if (startingExpression.isJoinExpression()) {
+            expressionSplitter.getJoinExpressions().add(startingExpression);
+        } else {
+            String tableName = startingExpression.getTableName();
+            expressionSplitter.getSingleExpressions().computeIfAbsent(tableName, k -> new ArrayList<>()).add(startingExpression);
+        }
+
+        // create select operators for single tables
+        for (Map.Entry<String, List<SplitExpression>> entry : expressionSplitter.getSingleExpressions().entrySet()) {
+            String combinedExpressionString = "";
+            List<SplitExpression> splitExpressions = entry.getValue();
+            if (splitExpressions.isEmpty()) {
+                continue;
+            }
+
+            SplitExpression firstExpression = splitExpressions.get(0);
+            combinedExpressionString += firstExpression.getExpression() + " " + "AND" + " ";
+
+            for (int i = 1; i < splitExpressions.size(); i++) {
+                combinedExpressionString += splitExpressions.get(i).getExpression() + " " + "AND";
+            }
+
+            try {
+                Expression expressionObject = CCJSqlParserUtil.parseCondExpression(combinedExpressionString);
+                SelectOperator selectOperator = new SelectOperator(entry.getKey(), expressionObject);
+                selectOperators.put(entry.getKey(), selectOperator);
+
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
 
 
-        // select operator may not be created if there is no expression!
-        SelectOperator selectOperator = new SelectOperator(expression);
-        String table = query.getPlainSelect().getFromItem().toString();
-        ScanOperator scanOperator = new ScanOperator(table);
+        }
 
-        // creating the operator tree
-        selectOperator.setChild(scanOperator);
-        projectOperator.setChild(selectOperator);
 
-        // creating the query plan
-        root = projectOperator;
-        QueryPlan queryPlan = new QueryPlan(root);
-        queryPlans.add(queryPlan);
-
-        return queryPlans;
     }
 
-    public List<QueryPlan> getQueryPlans() {
-        return queryPlans;
+    public QueryPlan build() throws FileNotFoundException {
+
+        // Gathering the inputs
+        Operator root;
+
+        // case for only 1 table (no joins)
+        if (tableOrder.size() == 1) {
+            ScanOperator scanOperator = scanOperators.get(tableOrder.get(0));
+            SelectOperator selectOperator = selectOperators.get(tableOrder.get(0));
+
+            if (selectOperator != null) {
+                selectOperator.setChild(scanOperator);
+                if (projectOperator != null) {
+                    projectOperator.setChild(selectOperator);
+                    root = projectOperator;
+                } else {
+                    root = selectOperator;
+                }
+            } else {
+                if (projectOperator != null) {
+                    projectOperator.setChild(scanOperator);
+                    root = projectOperator;
+                } else {
+                    root = scanOperator;
+                }
+            }
+            return new QueryPlan(root);
+        }
+
+        // query with joins
+//        String firstTable =  tableOrder.get(0);
+//        String secondTable =  tableOrder.get(1);
+//        // create subsequent subtrees
+//        int tableOrderIndex = 1;
+//        while (tableOrderIndex < tableOrder.size()) {
+//
+//            tableOrderIndex++;
+//        }
+//
+//
+//        return new QueryPlan(root);
+        return null;
     }
 
     public List<String> getTablesFromQuery(Select query) {

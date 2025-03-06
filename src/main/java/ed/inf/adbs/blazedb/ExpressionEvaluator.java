@@ -1,7 +1,6 @@
 package ed.inf.adbs.blazedb;
 
 import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.StringValue;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.conditional.OrExpression;
 import net.sf.jsqlparser.expression.operators.relational.*;
@@ -10,11 +9,11 @@ import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
 
 import java.util.Stack;
 
-public class BlazeExpressionDeParser extends ExpressionDeParser {
+public class ExpressionEvaluator extends ExpressionDeParser {
     private Tuple tuple;
     private final Stack<Integer> valueStack = new Stack<Integer>();
     private final Stack<Boolean> outputStack = new Stack<Boolean>();
-    public BlazeExpressionDeParser() {
+    public ExpressionEvaluator() {
         super();
     }
 
@@ -28,15 +27,6 @@ public class BlazeExpressionDeParser extends ExpressionDeParser {
             outputStack.push(false);
         }
         return outputStack.pop();
-    }
-
-    @Override
-    public void visit(OrExpression orExpression) {
-        super.visit(orExpression);
-        Boolean right = outputStack.pop();
-        Boolean left = outputStack.pop();
-
-        outputStack.push(left || right);
     }
 
     @Override
@@ -54,6 +44,14 @@ public class BlazeExpressionDeParser extends ExpressionDeParser {
         Integer right = valueStack.pop();
         Integer left = valueStack.pop();
         outputStack.push(left.equals(right));
+    }
+
+    @Override
+    public void visit(NotEqualsTo notEqualsTo) {
+        super.visit(notEqualsTo);
+        Integer right = valueStack.pop();
+        Integer left = valueStack.pop();
+        outputStack.push(!left.equals(right));
     }
 
     @Override

@@ -2,6 +2,8 @@ package ed.inf.adbs.blazedb;
 
 import ed.inf.adbs.blazedb.operator.Operator;
 
+import java.util.Stack;
+
 public class QueryPlan {
     private Operator root;
     private float cost;

@@ -12,6 +12,8 @@ import java.util.List;
  */
 public class Tuple {
     private List<String> columns = new ArrayList<String>();
+
+    // Student.a -> 10
     private HashMap<String, Integer> lookup = new HashMap<>();
 
     // for creating tuple with scan operator
