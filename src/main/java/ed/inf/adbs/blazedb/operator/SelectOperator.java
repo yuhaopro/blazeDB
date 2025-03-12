@@ -1,7 +1,7 @@
 package ed.inf.adbs.blazedb.operator;
 
 import ed.inf.adbs.blazedb.ExpressionEvaluator;
-import ed.inf.adbs.blazedb.Tuple;
+import ed.inf.adbs.blazedb.entity.Tuple;
 import net.sf.jsqlparser.expression.Expression;
 
 import java.io.IOException;

@@ -1,30 +1,35 @@
 package ed.inf.adbs.blazedb;
 
-import java.util.Stack;
-
 import ed.inf.adbs.blazedb.entity.Tuple;
 import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
-import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
-import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
-import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
-import net.sf.jsqlparser.expression.operators.relational.MinorThan;
-import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
-import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
+import net.sf.jsqlparser.expression.operators.relational.*;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
 
-public class ExpressionEvaluator extends ExpressionDeParser {
-    private Tuple tuple;
+import java.util.Stack;
+
+public class JoinExpressionEvaluator extends ExpressionDeParser {
+    private Tuple leftTuple;
+    private Tuple rightTuple;
+    private String joinColumn;
     private final Stack<Integer> valueStack = new Stack<Integer>();
     private final Stack<Boolean> outputStack = new Stack<Boolean>();
-    public ExpressionEvaluator() {
+
+    public JoinExpressionEvaluator(
+    ) {
         super();
+
     }
 
-    public void setTuple(Tuple tuple) {
-        this.tuple = tuple;
+    public void setLeftTuple(Tuple tuple) {
+        this.leftTuple = tuple;
     }
+
+    public void setRightTuple(Tuple tuple) {
+        this.rightTuple = tuple;
+    }
+
 
     public boolean getOutput() {
         if (outputStack.isEmpty()) {
@@ -95,7 +100,7 @@ public class ExpressionEvaluator extends ExpressionDeParser {
     public void visit(Column tableColumn) {
         super.visit(tableColumn);
         String columnName = tableColumn.toString();
-        Integer columnValue = tuple.getLookup().get(columnName);
+        Integer columnValue = leftTuple.getLookup().get(columnName);
         valueStack.push(columnValue);
     }
 

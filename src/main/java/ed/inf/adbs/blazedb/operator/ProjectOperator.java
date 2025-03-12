@@ -1,12 +1,10 @@
 package ed.inf.adbs.blazedb.operator;
 
-import ed.inf.adbs.blazedb.Tuple;
-import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.statement.select.SelectItem;
-
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
+
+import ed.inf.adbs.blazedb.entity.Tuple;
 
 public class ProjectOperator extends Operator {
     private Operator child;

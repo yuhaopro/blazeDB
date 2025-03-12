@@ -1,9 +1,11 @@
-package ed.inf.adbs.blazedb;
+package ed.inf.adbs.blazedb.entity;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+
+import ed.inf.adbs.blazedb.DatabaseCatalog;
 
 /**
  * The Tuple class represents a row of data.
@@ -11,6 +13,8 @@ import java.util.List;
  * You will need to modify this class, obviously :).
  */
 public class Tuple {
+
+    // to keep track of column order in this tuple
     private List<String> columns = new ArrayList<String>();
 
     // Student.a -> 10
@@ -18,11 +22,12 @@ public class Tuple {
 
     // for creating tuple with scan operator
     public Tuple(List<String> row, String tableName) {
-        List<String> tableSchema =  DatabaseCatalog.getInstance().getTableSchema(tableName);
+        TableData tableData =  DatabaseCatalog.getInstance().getTableSchema(tableName);
+        List<String> columns = tableData.getColumns();
         // set the current order based on table schema
         for (int i = 0; i < row.size(); i++) {
-            this.columns.add(tableName.trim() + "." + tableSchema.get(i).trim());
-            this.lookup.put(tableName.trim() + "." + tableSchema.get(i).trim(), Integer.valueOf(row.get(i).trim()));
+            this.columns.add(tableName.trim() + "." + columns.get(i).trim());
+            this.lookup.put(tableName.trim() + "." + columns.get(i).trim(), Integer.valueOf(row.get(i).trim()));
         }
     }
 

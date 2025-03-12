@@ -1,18 +1,18 @@
 package ed.inf.adbs.blazedb;
 
-import java.io.*;
-import java.util.ArrayList;
+import java.io.BufferedWriter;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.util.List;
 
+import ed.inf.adbs.blazedb.entity.Tuple;
+import ed.inf.adbs.blazedb.operator.Operator;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
-import net.sf.jsqlparser.statement.select.FromItem;
-import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.Select;
-import ed.inf.adbs.blazedb.operator.Operator;
 import net.sf.jsqlparser.util.TablesNamesFinder;
-
-import javax.management.Query;
 
 /**
  * Lightweight in-memory database system.
@@ -33,6 +33,9 @@ public class BlazeDB {
         String databaseDir = args[0];
         String inputFile = args[1];
         String outputFile = args[2];
+
+        // initialize databaseCatalog and generate statistics
+        DatabaseCatalog.getInstance().initialize(databaseDir);
 
         // parsing -> convert sql query to java object
         Statement statement = parseSQLFromFilename(inputFile);

@@ -1,9 +1,8 @@
 package ed.inf.adbs.blazedb.operator;
 
-import ed.inf.adbs.blazedb.Tuple;
-
-import java.io.FileNotFoundException;
 import java.io.IOException;
+
+import ed.inf.adbs.blazedb.entity.Tuple;
 
 /**
  * The abstract Operator class for the iterator model.
