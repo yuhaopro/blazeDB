@@ -2,8 +2,12 @@ package ed.inf.adbs.blazedb.entity;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import ed.inf.adbs.blazedb.DatabaseCatalog;
 
@@ -13,12 +17,11 @@ import ed.inf.adbs.blazedb.DatabaseCatalog;
  * You will need to modify this class, obviously :).
  */
 public class Tuple {
-
     // to keep track of column order in this tuple
     private List<String> columns = new ArrayList<String>();
 
     // Student.a -> 10
-    private HashMap<String, Integer> lookup = new HashMap<>();
+    private HashMap<String, Integer> lookup = new HashMap<String, Integer>();
 
     // for creating tuple with scan operator
     public Tuple(List<String> row, String tableName) {
@@ -55,6 +58,26 @@ public class Tuple {
             sortedRow.add(lookup.get(column).toString());
         }
         return sortedRow;
+    }
+
+    public Tuple join(Tuple tuple, List<String> tupleJoinColumns) {
+        this.columns = Stream.of(this.columns, tuple.getColumns())
+            .flatMap(Collection::stream)
+            .distinct()
+            .filter((s) -> !tupleJoinColumns.contains(s)) // removes the incoming join column
+            .collect(Collectors.toList());
+        
+        HashMap<String, Integer> mergedLookup = Stream.of(this.lookup, tuple.getLookup())
+                .flatMap(map -> map.entrySet().stream())
+                .filter(entry -> !tupleJoinColumns.contains(entry.getKey())) // Exclude the key
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        Map.Entry::getValue,
+                        (v1, v2) -> v1, // keeps first hashmap value if duplicate keys
+                        HashMap::new
+                ));
+        this.lookup = mergedLookup;
+        return this;
     }
 
     public void print() {

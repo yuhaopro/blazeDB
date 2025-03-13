@@ -1,32 +1,24 @@
 package ed.inf.adbs.blazedb.operator;
 
+import java.io.IOException;
+
+import ed.inf.adbs.blazedb.JoinExpressionEvaluator;
 import ed.inf.adbs.blazedb.entity.Tuple;
 import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.ExpressionVisitor;
-import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
-import java.util.Stack;
-import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.operators.arithmetic.Addition;
-import net.sf.jsqlparser.expression.operators.arithmetic.Multiplication;
-import net.sf.jsqlparser.parser.CCJSqlParserUtil;
-import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
-import java.io.IOException;
 
 public class JoinOperator extends Operator {
     private Operator leftChild;
     private Operator rightChild;
-    private String leftTableName;
-    private String rightTableName;
-    private Expression expression;
-    private ExpressionDeParser expressionDeParser;
+    private final String leftTableName;
+    private final String rightTableName;
+    private final Expression expression;
+    private final JoinExpressionEvaluator joinExpressionEvaluator;
 
-    public JoinOperator(String leftTableName, String rightTableName, Expression expression, ExpressionDeParser expressionDeParser) {
+    public JoinOperator(String leftTableName, String rightTableName, Expression expression, JoinExpressionEvaluator joinExpressionEvaluator) {
         this.leftTableName = leftTableName;
         this.rightTableName = rightTableName;
         this.expression = expression;
-        this.expressionDeParser = expressionDeParser;
+        this.joinExpressionEvaluator = joinExpressionEvaluator;
     }
 
     public String getLeftTableName() {
@@ -37,6 +29,14 @@ public class JoinOperator extends Operator {
         return rightTableName;
     }
 
+    public void setLeftChild(Operator leftChild) {
+        this.leftChild = leftChild;
+    }
+
+    public void setRightChild(Operator rightChild) {
+        this.rightChild = rightChild;
+    }
+
     public Tuple getNextTuple() {
 
         // left table is outer loop
@@ -44,11 +44,21 @@ public class JoinOperator extends Operator {
         Tuple rightTuple;
         while ((leftTuple = leftChild.getNextTuple()) != null) {
             while ((rightTuple = rightChild.getNextTuple()) != null) {
+                joinExpressionEvaluator.setLeftTuple(leftTuple);
+                joinExpressionEvaluator.setRightTuple(rightTuple);
+                expression.accept(joinExpressionEvaluator);
 
-                String joinColumn =
-                leftTuple.getLookup().get("");
+                if (joinExpressionEvaluator.getOutput()) {
+                    return leftTuple.join(rightTuple, joinExpressionEvaluator.getRightJoinColumns());
+                }
+            }
+            try {
+                rightChild.reset();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         }
+        return null;
     }
 
     /**
@@ -56,6 +66,7 @@ public class JoinOperator extends Operator {
      */
     @Override
     public void reset() throws IOException {
-
+        leftChild.reset();
+        rightChild.reset();
     }
 }

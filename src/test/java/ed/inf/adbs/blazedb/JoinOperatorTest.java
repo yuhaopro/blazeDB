@@ -12,6 +12,7 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnitRunner;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -25,8 +26,57 @@ public class JoinOperatorTest {
     private ScanOperator rightScanOperator;
 
     @Test
-    public void getNextTuple() throws JSQLParserException {
+    public void getNextTupleForOneJoinExpression() throws JSQLParserException {
         String raw_expression = "Student.A = Enrolled.A";
+        Expression expression = CCJSqlParserUtil.parseExpression(raw_expression);
+        String leftTable = "Student";
+        String rightTable = "Enrolled";
+        JoinExpressionEvaluator joinExpressionEvaluator = new JoinExpressionEvaluator();
+        JoinOperator joinOperator = new JoinOperator(leftTable, rightTable, expression, joinExpressionEvaluator);
+     
+        // mock the child operators
+        Tuple leftTuple = new Tuple();
+        List<String> leftTupleColumns = new ArrayList<>();
+        leftTupleColumns.add("Student.A");
+        leftTupleColumns.add("Student.B");
+        leftTuple.setColumns(leftTupleColumns);
+
+        HashMap<String, Integer> leftLookup = new HashMap<String, Integer>();
+        leftLookup.put("Student.A", 1);
+        leftLookup.put("Student.B", 5);
+        leftTuple.setLookup(leftLookup);
+
+        Tuple rightTuple = new Tuple();
+        List<String> rightTupleColumns = new ArrayList<>();
+        rightTupleColumns.add("Enrolled.A");
+        rightTupleColumns.add("Enrolled.E");
+        rightTuple.setColumns(rightTupleColumns);
+
+        HashMap<String, Integer> rightLookup = new HashMap<String, Integer>();
+        rightLookup.put("Enrolled.A", 1);
+        rightLookup.put("Enrolled.E", 16);
+        rightTuple.setLookup(rightLookup);
+
+        Mockito.when(leftScanOperator.getNextTuple()).thenReturn(leftTuple, (Tuple) null);
+        Mockito.when(rightScanOperator.getNextTuple()).thenReturn(rightTuple, (Tuple) null);
+
+        joinOperator.setLeftChild(leftScanOperator);
+        joinOperator.setRightChild(rightScanOperator);
+        Tuple joinTuple = joinOperator.getNextTuple();
+
+        // A, B, E
+        assertEquals(3, joinTuple.getColumns().size());
+        int A = joinTuple.getLookup().get("Student.A");
+        assertEquals(1, A);
+        int B = joinTuple.getLookup().get("Student.B");
+        assertEquals(5, B);
+        int E = joinTuple.getLookup().get("Enrolled.E");
+        assertEquals(16, E);
+    }
+
+    @Test
+    public void getNextTupleForTwoJoinExpressions() throws JSQLParserException {
+        String raw_expression = "Student.A = Enrolled.A AND Student.B = Enrolled.E";
         Expression expression = CCJSqlParserUtil.parseExpression(raw_expression);
         String leftTable = "Student";
         String rightTable = "Enrolled";
@@ -38,32 +88,51 @@ public class JoinOperatorTest {
         List<String> leftTupleColumns = new ArrayList<>();
         leftTupleColumns.add("Student.A");
         leftTupleColumns.add("Student.B");
+        leftTuple.setColumns(leftTupleColumns);
+
         HashMap<String, Integer> leftLookup = new HashMap<String, Integer>();
         leftLookup.put("Student.A", 1);
         leftLookup.put("Student.B", 5);
+        leftTuple.setLookup(leftLookup);
 
         Tuple rightTuple = new Tuple();
         List<String> rightTupleColumns = new ArrayList<>();
         rightTupleColumns.add("Enrolled.A");
         rightTupleColumns.add("Enrolled.E");
+        rightTuple.setColumns(rightTupleColumns);
+
         HashMap<String, Integer> rightLookup = new HashMap<String, Integer>();
         rightLookup.put("Enrolled.A", 1);
-        rightLookup.put("Enrolled.E", 16);
-
+        rightLookup.put("Enrolled.E", 5);
+        rightTuple.setLookup(rightLookup);
 
         Mockito.when(leftScanOperator.getNextTuple()).thenReturn(leftTuple, (Tuple) null);
         Mockito.when(rightScanOperator.getNextTuple()).thenReturn(rightTuple, (Tuple) null);
 
-
+        joinOperator.setLeftChild(leftScanOperator);
+        joinOperator.setRightChild(rightScanOperator);
         Tuple joinTuple = joinOperator.getNextTuple();
 
         // A, B, E
-        assertEquals(3, joinTuple.getColumns().size());
+        assertEquals(2, joinTuple.getColumns().size());
         int A = joinTuple.getLookup().get("Student.A");
         assertEquals(1, A);
         int B = joinTuple.getLookup().get("Student.B");
         assertEquals(5, B);
-        int E = joinTuple.getLookup().get("Enrolled.E");
-        assertEquals(16, E);
+    }
+
+    @Test
+    public void reset() throws JSQLParserException, IOException {
+        String raw_expression = "Student.A = Enrolled.A";
+        Expression expression = CCJSqlParserUtil.parseExpression(raw_expression);
+        String leftTable = "Student";
+        String rightTable = "Enrolled";
+        JoinExpressionEvaluator joinExpressionEvaluator = new JoinExpressionEvaluator();
+        JoinOperator joinOperator = new JoinOperator(leftTable, rightTable, expression, joinExpressionEvaluator);
+        joinOperator.setLeftChild(leftScanOperator);
+        joinOperator.setRightChild(rightScanOperator);
+        joinOperator.reset();
+        Mockito.verify(leftScanOperator).reset();
+        Mockito.verify(rightScanOperator).reset();
     }
 }

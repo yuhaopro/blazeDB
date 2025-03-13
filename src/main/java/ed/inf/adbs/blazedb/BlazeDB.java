@@ -52,9 +52,11 @@ public class BlazeDB {
         List<String> tableList = tablesNamesFinder.getTableList(statement);
         System.out.println("Tables: " + tableList);
         System.out.println("WHERE expression: " + select.getPlainSelect().getWhere());
+        System.out.println("ORDER BY expression: " + select.getPlainSelect().getOrderByElements());
+
 
         QueryPlan queryPlan = new QueryPlanBuilder((Select) select).build();
-//        QueryPlan queryPlan = new QueryOptimizer(queryPlans).optimize();
+//      QueryPlan queryPlan = new QueryOptimizer(queryPlans).optimize();
         execute(queryPlan.getRoot(), outputFile);
 
         // tables we need to scan -> FROM clause
@@ -71,8 +73,8 @@ public class BlazeDB {
 
     public static Statement parseSQLFromFilename(String filename) {
         try {
-			return CCJSqlParserUtil.parse(new FileReader(filename));
-//            return CCJSqlParserUtil.parse("SELECT Student.A, Student.B FROM Student WHERE Student.A > 1 AND Student.B >= 100");
+//			return CCJSqlParserUtil.parse(new FileReader(filename));
+            return CCJSqlParserUtil.parse("SELECT Student.A FROM Student ORDER BY Student.A");
         } catch (Exception e) {
             System.err.println("Exception occurred during parsing");
             e.printStackTrace();

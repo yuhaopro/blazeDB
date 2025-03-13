@@ -4,12 +4,14 @@ import ed.inf.adbs.blazedb.operator.*;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.statement.select.OrderByElement;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectItem;
 import net.sf.jsqlparser.util.TablesNamesFinder;
 
 import java.io.FileNotFoundException;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class QueryPlanBuilder {
     private HashMap<String, ScanOperator> scanOperators = new LinkedHashMap<String, ScanOperator>();
@@ -21,7 +23,8 @@ public class QueryPlanBuilder {
     private HashMap<String, JoinOperator> joinOperators = new HashMap<String, JoinOperator>();
 
     public QueryPlanBuilder(Select query) {
-        // parse SELECT
+
+        // SELECT
         List<SelectItem<?>> selectItems = query.getPlainSelect().getSelectItems();
         List<String> selectItemsInString = new ArrayList<String>();
         for (SelectItem<?> selectItem : selectItems) {
@@ -32,7 +35,7 @@ public class QueryPlanBuilder {
             projectOperator = new ProjectOperator(selectItemsInString);
         }
 
-        // parse tables
+        // FROM
         List<String> tables = getTablesFromQuery(query);
         for (String table : tables) {
             try {
@@ -43,7 +46,7 @@ public class QueryPlanBuilder {
             }
         }
 
-        // parse WHERE
+        // WHERE
         Expression expression = query.getPlainSelect().getWhere();
         // extract JOIN conditions
         // extract Selection for a single table
@@ -90,6 +93,11 @@ public class QueryPlanBuilder {
 
 
         }
+
+
+        // ORDER BY
+        List<String> orderBy = query.getPlainSelect().getOrderByElements().stream().map(OrderByElement::toString).collect(Collectors.toList());
+
 
 
     }
