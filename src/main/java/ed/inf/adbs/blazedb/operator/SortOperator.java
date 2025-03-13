@@ -14,10 +14,12 @@ public class SortOperator extends Operator{
     private Operator child;
     private final List<String> sortColumns;
     private Iterator<Tuple> sortedBuffer;
-    private List<Tuple> buffer;
+    private List<Tuple> buffer = new ArrayList<Tuple>();
     public SortOperator(List<String> sortColumns) {
         this.sortColumns = sortColumns;
     }
+
+    // called before set child
     public void initialize() {
         Tuple tuple;
         while ((tuple = child.getNextTuple()) != null) {
@@ -27,6 +29,11 @@ public class SortOperator extends Operator{
         sortBuffer();
         this.sortedBuffer = buffer.iterator();
     }
+    
+    public void setChild(Operator child) {
+        this.child = child;
+    }
+
     private void sortBuffer() {
         if (buffer == null || sortColumns == null || buffer.isEmpty() || sortColumns.isEmpty()) {
             return;
