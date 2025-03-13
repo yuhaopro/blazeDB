@@ -75,6 +75,7 @@ public class SortOperator extends Operator{
      */
     @Override
     public void reset() throws IOException {
-        this.sortedBuffer = this.buffer.iterator();
+        child.reset();
+        initialize();
     }
 }
