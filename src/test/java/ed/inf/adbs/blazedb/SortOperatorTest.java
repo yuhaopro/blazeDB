@@ -22,7 +22,7 @@ public class SortOperatorTest {
     private ScanOperator scanOperator;
     
     @Test
-    public void sortedBuffer() {
+    public void getNextTuple() {
         List<String> sortedColumns = new ArrayList<>();
         sortedColumns.add("Student.B");
         sortedColumns.add("Student.A");
