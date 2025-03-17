@@ -6,6 +6,7 @@ import java.util.List;
 
 import ed.inf.adbs.blazedb.entity.Tuple;
 
+// TODO: projection will no longer work properly with SUM() in the select clause.
 public class ProjectOperator extends Operator {
     private Operator child;
     private final List<String> columns;
