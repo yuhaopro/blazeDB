@@ -11,8 +11,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
 
-// TODO: how to determine which is left column, which is right column
-// if stack is not empty then is left, else right
+// Expression is always column to column comparison
 public class JoinExpressionEvaluator extends ExpressionDeParser {
     private Tuple leftTuple;
     private Tuple rightTuple;
