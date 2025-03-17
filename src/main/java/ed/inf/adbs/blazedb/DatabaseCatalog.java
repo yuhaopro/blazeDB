@@ -12,14 +12,12 @@ public class DatabaseCatalog {
     private static DatabaseCatalog instance;
     private String databaseDirectory;
 
-    // global shared database schema in hashmap form
     private final HashMap<String, TableData> dataBaseSchema = new HashMap<>();
 
     private DatabaseCatalog() {}
 
     public void initialize(String databaseDirectory) {
         this.databaseDirectory = databaseDirectory;
-        // parse the schema file to create a dictionary to search for column index
         String schemaPath = this.databaseDirectory + "/schema.txt";
         String schemaDelimiter = " ";
 
@@ -53,7 +51,6 @@ public class DatabaseCatalog {
     public String getTablePath(String tableName) {
         
         String dataFilePathFormat = this.databaseDirectory + "/data/{0}.csv";
-        // System.out.println("getTablePath(): " + MessageFormat.format(dataFilePathFormat, tableName));
         return MessageFormat.format(dataFilePathFormat, tableName);
     }
 

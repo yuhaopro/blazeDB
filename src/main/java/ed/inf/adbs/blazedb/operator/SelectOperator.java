@@ -38,7 +38,6 @@ public class SelectOperator extends Operator {
             if (expression == null) {
                 return tuple;
             }
-            // tuple.print();
             expressionDeParser.setTuple(tuple);
             expression.accept(expressionDeParser);
             if (expressionDeParser.getOutput()) {

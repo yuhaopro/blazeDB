@@ -30,7 +30,7 @@ public class ProjectOperator extends Operator {
         Tuple tuple;
         if ((tuple = child.getNextTuple()) != null) {
             if (!columns.get(0).equals("*")) {
-                HashMap<String, Integer> map = new HashMap<String, Integer>();
+                HashMap<String, Integer> map = new HashMap<>();
                 for (String column : columns) {
                     map.put(column, tuple.getLookup().get(column));
                 }

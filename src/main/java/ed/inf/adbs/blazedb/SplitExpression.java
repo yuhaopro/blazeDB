@@ -1,7 +1,5 @@
 package ed.inf.adbs.blazedb;
 
-import net.sf.jsqlparser.schema.Column;
-
 public class SplitExpression {
     private final String left;
     private final String right;

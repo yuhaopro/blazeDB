@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
-public class CSVParser implements RowSource {
+public class CSVParser {
     private final BufferedReader reader;
     private List<String> currentRow;
     private String delimiter = ",";

@@ -9,10 +9,7 @@ import ed.inf.adbs.blazedb.entity.Tuple;
 public class DuplicateEliminationOperator extends Operator {
     private Operator child;
 
-    private HashMap<String, HashMap<Integer, Boolean>> hashTable = new HashMap<String, HashMap<Integer, Boolean>>();
-
-    public DuplicateEliminationOperator() {
-    }
+    private HashMap<String, HashMap<Integer, Boolean>> hashTable = new HashMap<>();
 
     public void setChild(Operator child) {
         this.child = child;
@@ -32,9 +29,7 @@ public class DuplicateEliminationOperator extends Operator {
             List<String> columns = tuple.getColumns();
             for (String column : columns) {
 
-                if (hashTable.get(column) == null) {
-                    hashTable.put(column, new HashMap<>());
-                }
+                hashTable.putIfAbsent(column, new HashMap<>());
 
                 HashMap<Integer, Boolean> duplicateLookup = hashTable.get(column);
                 int columnValue = tuple.getLookup().get(column);
@@ -57,7 +52,7 @@ public class DuplicateEliminationOperator extends Operator {
     @Override
     public void reset() throws IOException {
         this.child.reset();
-        this.hashTable = new HashMap<String, HashMap<Integer, Boolean>>();
+        this.hashTable = new HashMap<>();
     }
 
 }

@@ -16,8 +16,8 @@ import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
 
 public class ExpressionEvaluator extends ExpressionDeParser {
     private Tuple tuple;
-    private final Stack<Integer> valueStack = new Stack<Integer>();
-    private final Stack<Boolean> outputStack = new Stack<Boolean>();
+    private final Stack<Integer> valueStack = new Stack<>();
+    private final Stack<Boolean> outputStack = new Stack<>();
     public ExpressionEvaluator() {
         super();
     }

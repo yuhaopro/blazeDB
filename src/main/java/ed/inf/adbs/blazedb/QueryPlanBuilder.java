@@ -14,13 +14,13 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class QueryPlanBuilder {
-    private HashMap<String, ScanOperator> scanOperators = new LinkedHashMap<String, ScanOperator>();
-    private List<String> tableOrder = new ArrayList<String>();
+    private HashMap<String, ScanOperator> scanOperators = new LinkedHashMap<>();
+    private List<String> tableOrder = new ArrayList<>();
     private ProjectOperator projectOperator;
-    private HashMap<String, SelectOperator> selectOperators = new HashMap<String, SelectOperator>();
+    private HashMap<String, SelectOperator> selectOperators = new HashMap<>();
     private ExpressionSplitter expressionSplitter;
     // join key format {left_table_name.right_table_name}
-    private HashMap<String, JoinOperator> joinOperators = new HashMap<String, JoinOperator>();
+    private HashMap<String, JoinOperator> joinOperators = new HashMap<>();
 
     public QueryPlanBuilder(Select query) {
 

@@ -39,9 +39,7 @@ public class ScanOperator extends Operator {
     public Tuple getNextTuple() {
         if (csvParser.hasNext()) {
             List<String> row = csvParser.next();
-            Tuple tuple = new Tuple(row, tableName);
-            // tuple.print();
-            return tuple;
+            return new Tuple(row, tableName);
         }
         // if no more tuple, return null
         return null;

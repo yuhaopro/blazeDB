@@ -1,23 +1,27 @@
 package ed.inf.adbs.blazedb;
 
-import ed.inf.adbs.blazedb.entity.Tuple;
-import net.sf.jsqlparser.expression.LongValue;
-import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
-import net.sf.jsqlparser.expression.operators.relational.*;
-import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Stack;
+
+import ed.inf.adbs.blazedb.entity.Tuple;
+import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
+import net.sf.jsqlparser.expression.operators.relational.EqualsTo;
+import net.sf.jsqlparser.expression.operators.relational.GreaterThan;
+import net.sf.jsqlparser.expression.operators.relational.GreaterThanEquals;
+import net.sf.jsqlparser.expression.operators.relational.MinorThan;
+import net.sf.jsqlparser.expression.operators.relational.MinorThanEquals;
+import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
+import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
 
 // Expression is always column to column comparison
 public class JoinExpressionEvaluator extends ExpressionDeParser {
     private Tuple leftTuple;
     private Tuple rightTuple;
-    private List<String> rightJoinColumns = new ArrayList<String>();
-    private final Stack<String> valueStack = new Stack<String>();
-    private final Stack<Boolean> outputStack = new Stack<Boolean>();
+    private List<String> rightJoinColumns = new ArrayList<>();
+    private final Stack<String> valueStack = new Stack<>();
+    private final Stack<Boolean> outputStack = new Stack<>();
 
     public JoinExpressionEvaluator(
     ) {
