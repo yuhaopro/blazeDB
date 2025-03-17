@@ -14,7 +14,7 @@ public class SortOperator extends Operator{
     private Operator child;
     private final List<String> sortColumns;
     private Iterator<Tuple> sortedBuffer;
-    private List<Tuple> buffer = new ArrayList<Tuple>();
+    private List<Tuple> buffer = new ArrayList<>();
     public SortOperator(List<String> sortColumns) {
         this.sortColumns = sortColumns;
     }

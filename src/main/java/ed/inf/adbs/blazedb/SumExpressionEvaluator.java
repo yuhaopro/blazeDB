@@ -11,18 +11,14 @@ import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
 public class SumExpressionEvaluator extends ExpressionDeParser {
 	
 	private Tuple tuple;
-	private final Stack<Integer> outputStack = new Stack<>();
+	private Stack<Integer> outputStack = new Stack<>();
 	
-	public SumExpressionEvaluator() {
-
+	public SumExpressionEvaluator(Tuple tuple) {
+		this.tuple = tuple;
 	}
 
 	public Stack<Integer> getOutputStack() {
 		return this.outputStack;
-	}
-
-	public void setTuple(Tuple tuple) {
-		this.tuple = tuple;
 	}
 
 	@Override

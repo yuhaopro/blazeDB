@@ -3,6 +3,7 @@ package ed.inf.adbs.blazedb;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Stack;
 
 import net.sf.jsqlparser.expression.Expression;
@@ -18,11 +19,11 @@ import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
 
 public class ExpressionSplitter extends ExpressionDeParser {
-    private List<SplitExpression> joinExpressions = new ArrayList<SplitExpression>();
+    private List<SplitExpression> joinExpressions = new ArrayList<>();
     // TableName, SplitExpression
-    private final HashMap<String, List<SplitExpression>> singleExpressions = new HashMap<String, List<SplitExpression>>();
-    private Stack<String> inputStack = new Stack<String>();
-    private Stack<SplitExpression> outputStack = new Stack<SplitExpression>();
+    private final HashMap<String, List<SplitExpression>> singleExpressions = new HashMap<>();
+    private Stack<String> inputStack = new Stack<>();
+    private Stack<SplitExpression> outputStack = new Stack<>();
     private Expression expression;
     public ExpressionSplitter(Expression expression) {
         super();
@@ -31,7 +32,7 @@ public class ExpressionSplitter extends ExpressionDeParser {
     public List<SplitExpression> getJoinExpressions() {
         return joinExpressions;
     }
-    public HashMap<String, List<SplitExpression>> getSingleExpressions() {
+    public Map<String, List<SplitExpression>> getSingleExpressions() {
         return singleExpressions;
     }
 

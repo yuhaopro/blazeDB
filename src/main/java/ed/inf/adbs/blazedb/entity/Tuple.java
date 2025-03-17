@@ -18,10 +18,10 @@ import ed.inf.adbs.blazedb.DatabaseCatalog;
  */
 public class Tuple {
     // to keep track of column order in this tuple
-    private List<String> columns = new ArrayList<String>();
+    private List<String> columns = new ArrayList<>();
 
     // Student.a -> 10
-    private HashMap<String, Integer> lookup = new HashMap<String, Integer>();
+    private HashMap<String, Integer> lookup = new HashMap<>();
 
     // for creating tuple with scan operator
     public Tuple(List<String> row, String tableName) {
@@ -35,6 +35,11 @@ public class Tuple {
     }
 
     public Tuple() {}
+    
+    public Tuple(List<String> columns, HashMap<String, Integer> lookup) {
+        this.columns = columns;
+        this.lookup = lookup;
+    }
 
     public List<String> getColumns() {
         return columns;
