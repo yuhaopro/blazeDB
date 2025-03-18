@@ -1,22 +1,30 @@
 package ed.inf.adbs.blazedb.operator;
 
-import ed.inf.adbs.blazedb.entity.Tuple;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
 
-public class SortOperator extends Operator{
+import ed.inf.adbs.blazedb.entity.Tuple;
+
+public class SortOperator extends Operator {
 
     private Operator child;
     private final List<String> sortColumns;
     private Iterator<Tuple> sortedBuffer;
     private List<Tuple> buffer = new ArrayList<>();
+    private boolean removeDuplicate = false;
+
     public SortOperator(List<String> sortColumns) {
         this.sortColumns = sortColumns;
+    }
+
+    public SortOperator(List<String> sortColumns, boolean removeDuplicate) {
+        this.sortColumns = sortColumns;
+        this.removeDuplicate = removeDuplicate;
     }
 
     // called before set child
@@ -27,9 +35,16 @@ public class SortOperator extends Operator{
         }
 
         sortBuffer();
+        if (removeDuplicate) {
+            removeDuplicateInBuffer();
+        }
         this.sortedBuffer = buffer.iterator();
     }
-    
+
+    public void removeDuplicateInBuffer() {
+        this.buffer = buffer.stream().distinct().collect(Collectors.toList());
+    }
+
     public void setChild(Operator child) {
         this.child = child;
     }
@@ -41,11 +56,11 @@ public class SortOperator extends Operator{
 
         Comparator<Tuple> comparator = null;
 
+        // building the comparator.
         for (String column : sortColumns) {
-            Comparator<Tuple> columnComparator = Comparator.comparing(
-                tuple -> tuple.getLookup().get(column),
-                Comparator.nullsLast(Comparator.naturalOrder())
-            );
+            Comparator<Tuple> columnComparator = Comparator.comparing(tuple -> tuple.getLookup().get(column),
+                    // places the nulls last
+                    Comparator.nullsLast(Comparator.naturalOrder()));
 
             if (comparator == null) {
                 comparator = columnComparator;
@@ -60,7 +75,7 @@ public class SortOperator extends Operator{
     }
 
     /**
-     * @return 
+     * @return
      */
     @Override
     public Tuple getNextTuple() {
@@ -71,11 +86,10 @@ public class SortOperator extends Operator{
     }
 
     /**
-     * @throws IOException 
+     * @throws IOException
      */
     @Override
     public void reset() throws IOException {
-        child.reset();
-        initialize();
+        this.sortedBuffer = buffer.iterator();
     }
 }
