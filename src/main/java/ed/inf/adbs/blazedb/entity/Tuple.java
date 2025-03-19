@@ -63,16 +63,14 @@ public class Tuple {
         return sortedRow;
     }
 
-    public Tuple join(Tuple tuple, List<String> tupleJoinColumns) {
+    public Tuple join(Tuple tuple) {
         this.columns = Stream.of(this.columns, tuple.getColumns())
             .flatMap(Collection::stream)
             .distinct()
-            .filter((s) -> !tupleJoinColumns.contains(s)) // removes the incoming join column
             .collect(Collectors.toList());
         
         HashMap<String, Integer> mergedLookup = Stream.of(this.lookup, tuple.getLookup())
                 .flatMap(map -> map.entrySet().stream())
-                .filter(entry -> !tupleJoinColumns.contains(entry.getKey())) // Exclude the key
                 .collect(Collectors.toMap(
                         Map.Entry::getKey,
                         Map.Entry::getValue,

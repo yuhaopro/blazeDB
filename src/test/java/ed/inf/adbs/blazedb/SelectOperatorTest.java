@@ -32,7 +32,9 @@ public class SelectOperatorTest {
         Expression expression = CCJSqlParserUtil.parseExpression(str_expression);
         List<Expression> expressions = new ArrayList<Expression>();
         expressions.add(expression);
-        SelectOperator selectOperator = new SelectOperator("Student", expressions);
+        Expression combinedExpression = QueryPlanBuilder.combineListOfExpressions(expressions);
+
+        SelectOperator selectOperator = new SelectOperator("Student", combinedExpression);
 
 
         // mocking the tuple in get next tuple for select operator child
@@ -63,7 +65,9 @@ public class SelectOperatorTest {
         Expression expression = CCJSqlParserUtil.parseExpression(raw_expression);
         List<Expression> expressions = new ArrayList<Expression>();
         expressions.add(expression);
-        SelectOperator selectOperator = new SelectOperator("Student", expressions);
+        Expression combinedExpression = QueryPlanBuilder.combineListOfExpressions(expressions);
+
+        SelectOperator selectOperator = new SelectOperator("Student", combinedExpression);
 
 
         // mocking the tuple in get next tuple for select operator child
@@ -99,8 +103,8 @@ public class SelectOperatorTest {
         List<Expression> expressions = new ArrayList<Expression>();
         expressions.add(firstExpression);
         expressions.add(secondExpression);
-
-        SelectOperator selectOperator = new SelectOperator("Student", expressions);
+        Expression combinedExpression = QueryPlanBuilder.combineListOfExpressions(expressions);
+        SelectOperator selectOperator = new SelectOperator("Student", combinedExpression);
 
         // mocking the tuple in get next tuple for select operator child
         Tuple mockTuple = new Tuple();
@@ -152,7 +156,8 @@ public class SelectOperatorTest {
         Expression expression = CCJSqlParserUtil.parseExpression(str_expression);
         List<Expression> expressions = new ArrayList<Expression>();
         expressions.add(expression);
-        SelectOperator selectOperator = new SelectOperator("Student", expressions);
+        Expression combinedExpression = QueryPlanBuilder.combineListOfExpressions(expressions);
+        SelectOperator selectOperator = new SelectOperator("Student", combinedExpression);
         selectOperator.setChild(scanOperator);
 
         selectOperator.reset();

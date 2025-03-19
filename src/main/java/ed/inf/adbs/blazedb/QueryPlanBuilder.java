@@ -9,6 +9,7 @@ import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 import ed.inf.adbs.blazedb.operator.DuplicateEliminationOperator;
+import ed.inf.adbs.blazedb.operator.JoinOperator;
 import ed.inf.adbs.blazedb.operator.Operator;
 import ed.inf.adbs.blazedb.operator.ProjectOperator;
 import ed.inf.adbs.blazedb.operator.ScanOperator;
@@ -18,6 +19,7 @@ import ed.inf.adbs.blazedb.operator.SumOperator;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.operators.arithmetic.Multiplication;
+import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.select.AllColumns;
@@ -80,23 +82,89 @@ public class QueryPlanBuilder {
 
 
     private Operator buildQueryPlanForJoinTables() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'buildQueryPlanForJoinTables'");
+        Operator root = null;
+        Operator left = null;
+        Operator right = null;
+        String leftTableName = tableOrder.get(0);
+        String rightTableName = tableOrder.get(1);
+
+        ScanOperator leftScan = new ScanOperator(leftTableName);
+        left = leftScan;
+        ScanOperator rightScan = new ScanOperator(rightTableName);
+        right = rightScan;
+
+        // check select for left and right
+        if (isThereWhereExpressions) {
+            List<Expression> leftExpressions = this.singleExpressions.get(leftTableName);
+            if (leftExpressions != null && !leftExpressions.isEmpty()) {
+                left = createSelectOperator(left, leftTableName, leftExpressions);             
+              
+            }
+
+            List<Expression> rightExpressions = this.singleExpressions.get(rightTableName);
+            if (rightExpressions != null && !rightExpressions.isEmpty()) {
+                right = createSelectOperator(right, rightTableName, rightExpressions);             
+            }
+        }
+
+        // early projection to reduce size of tuples.
+        if (!isAllColumns) {
+            HashSet<String> leftColumns = projectedColumnLookup.get(leftTableName);
+            if (leftColumns != null && !leftColumns.isEmpty()) {
+                List<String> leftColumnList = leftColumns.stream().toList();
+                ProjectOperator leftProject = new ProjectOperator(leftColumnList);
+                leftProject.setChild(left);
+                left = leftProject;
+            }
+
+            HashSet<String> rightColumns = projectedColumnLookup.get(rightTableName);
+            if (rightColumns != null && !rightColumns.isEmpty()) {
+                List<String> rightColumnList = rightColumns.stream().toList();
+                ProjectOperator rightProject = new ProjectOperator(rightColumnList);
+                rightProject.setChild(right);
+                right = rightProject;
+            }
+        }
+
+        // find the join expression for the first 2 table
+        List<Expression> leftJoinExpressions = joinExpressions.get(leftTableName);
+        List<Expression> rightJoinExpressions = joinExpressions.get(rightTableName);
+        List<Expression> commonJoinExpressions = List.copyOf(leftJoinExpressions);
+
+        // get the common expression
+        commonJoinExpressions.retainAll(rightJoinExpressions);
+        Expression joinExpression = combineListOfExpressions(commonJoinExpressions);
+        JoinOperator joinOperator = new JoinOperator(leftTableName, rightTableName, joinExpression);
+    }
+
+    public static Expression combineListOfExpressions(List<Expression> expressions) {
+        if (expressions.size() == 1) return expressions.getFirst();
+
+        Expression firstExpression = expressions.get(0);
+        Expression secondExpression = expressions.get(1);
+        AndExpression andExpression = new AndExpression(firstExpression, secondExpression);
+        for (int i = 2; i < expressions.size(); i++) {
+            andExpression = new AndExpression(andExpression, expressions.get(i));
+        }
+
+        return andExpression;
     }
 
     private Operator buildQueryPlanForSingleTable() {
         Operator root = null;
 
-        String table = tableOrder.get(0);
+        String tableName = tableOrder.get(0);
         // table
-        ScanOperator scanOperator = new ScanOperator(table);
+        ScanOperator scanOperator = new ScanOperator(tableName);
         root = scanOperator;
 
         // selection
         if (isThereWhereExpressions) {
-            SelectOperator selectOperator = new SelectOperator(table, this.singleExpressions.get(table));
-            selectOperator.setChild(root);
-            root = selectOperator;
+            List<Expression> expressions = this.singleExpressions.get(tableName);
+            if (expressions != null && !expressions.isEmpty()) {
+                createSelectOperator(root, tableName, expressions);        
+            }
+
         }
 
         // projection first to reduce columns, if all columns required, then don't
@@ -131,6 +199,13 @@ public class QueryPlanBuilder {
         }
 
         return root;
+    }
+
+    public Operator createSelectOperator(Operator root, String tableName, List<Expression> expressions) {
+        Expression combinedExpression = combineListOfExpressions(expressions);
+        SelectOperator selectOperator = new SelectOperator(tableName, combinedExpression);
+        selectOperator.setChild(root);
+        return selectOperator;
     }
 
     public void initializeIsDistinct(Select query) {

@@ -32,8 +32,7 @@ public class JoinOperatorTest {
         String leftTable = "Student";
         String rightTable = "Enrolled";
     
-        JoinExpressionEvaluator joinExpressionEvaluator = new JoinExpressionEvaluator();
-        JoinOperator joinOperator = new JoinOperator(leftTable, rightTable, expression, joinExpressionEvaluator);
+        JoinOperator joinOperator = new JoinOperator(leftTable, rightTable, expression);
      
         // mock the child operators
         Tuple leftTuple = new Tuple();
@@ -65,14 +64,15 @@ public class JoinOperatorTest {
         joinOperator.setRightChild(rightScanOperator);
         Tuple joinTuple = joinOperator.getNextTuple();
 
-        // A, B, E
-        assertEquals(3, joinTuple.getColumns().size());
-        int A = joinTuple.getLookup().get("Student.A");
-        assertEquals(1, A);
-        int B = joinTuple.getLookup().get("Student.B");
-        assertEquals(5, B);
-        int E = joinTuple.getLookup().get("Enrolled.E");
-        assertEquals(16, E);
+        assertEquals(4, joinTuple.getColumns().size());
+        int studentA = joinTuple.getLookup().get("Student.A");
+        assertEquals(1, studentA);
+        int studentB = joinTuple.getLookup().get("Student.B");
+        assertEquals(5, studentB);
+        int enrolledA = joinTuple.getLookup().get("Enrolled.A");
+        assertEquals(1, enrolledA);
+        int enrolledE = joinTuple.getLookup().get("Enrolled.E");
+        assertEquals(16, enrolledE);
     }
 
     @Test
@@ -81,8 +81,7 @@ public class JoinOperatorTest {
         Expression expression = CCJSqlParserUtil.parseExpression(raw_expression);
         String leftTable = "Student";
         String rightTable = "Enrolled";
-        JoinExpressionEvaluator joinExpressionEvaluator = new JoinExpressionEvaluator();
-        JoinOperator joinOperator = new JoinOperator(leftTable, rightTable, expression, joinExpressionEvaluator);
+        JoinOperator joinOperator = new JoinOperator(leftTable, rightTable, expression);
 
         // mock the child operators
         Tuple leftTuple = new Tuple();
@@ -114,12 +113,15 @@ public class JoinOperatorTest {
         joinOperator.setRightChild(rightScanOperator);
         Tuple joinTuple = joinOperator.getNextTuple();
 
-        // A, B, E
-        assertEquals(2, joinTuple.getColumns().size());
-        int A = joinTuple.getLookup().get("Student.A");
-        assertEquals(1, A);
-        int B = joinTuple.getLookup().get("Student.B");
-        assertEquals(5, B);
+        assertEquals(4, joinTuple.getColumns().size());
+        int studentA = joinTuple.getLookup().get("Student.A");
+        assertEquals(1, studentA);
+        int studentB = joinTuple.getLookup().get("Student.B");
+        assertEquals(5, studentB);
+        int enrolledA = joinTuple.getLookup().get("Enrolled.A");
+        assertEquals(1, enrolledA);
+        int enrolledB = joinTuple.getLookup().get("Enrolled.E");
+        assertEquals(5, enrolledB);
     }
 
     @Test
@@ -128,8 +130,7 @@ public class JoinOperatorTest {
         Expression expression = CCJSqlParserUtil.parseExpression(raw_expression);
         String leftTable = "Student";
         String rightTable = "Enrolled";
-        JoinExpressionEvaluator joinExpressionEvaluator = new JoinExpressionEvaluator();
-        JoinOperator joinOperator = new JoinOperator(leftTable, rightTable, expression, joinExpressionEvaluator);
+        JoinOperator joinOperator = new JoinOperator(leftTable, rightTable, expression);
         joinOperator.setLeftChild(leftScanOperator);
         joinOperator.setRightChild(rightScanOperator);
         joinOperator.reset();

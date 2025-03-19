@@ -1,5 +1,7 @@
 package ed.inf.adbs.blazedb;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Stack;
 
 import ed.inf.adbs.blazedb.entity.Tuple;
@@ -19,15 +21,11 @@ import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
  * @implNote this class is used for evaluating the final expression value
  */
 public class EvaluationDeparser extends ExpressionDeParser {
-    private Tuple tuple;
+    private List<Tuple> tuples = new ArrayList<>();;
     private final Stack<Integer> valueStack = new Stack<>();
     private final Stack<Boolean> outputStack = new Stack<>();
     public EvaluationDeparser() {
         super();
-    }
-
-    public void setTuple(Tuple tuple) {
-        this.tuple = tuple;
     }
 
     public boolean getOutput() {
@@ -36,6 +34,10 @@ public class EvaluationDeparser extends ExpressionDeParser {
             outputStack.push(false);
         }
         return outputStack.pop();
+    }
+
+    public void addTuple(Tuple tuple) {
+        tuples.add(tuple);
     }
 
     @Override
@@ -99,8 +101,14 @@ public class EvaluationDeparser extends ExpressionDeParser {
     public void visit(Column tableColumn) {
         super.visit(tableColumn);
         String columnName = tableColumn.toString();
-        Integer columnValue = tuple.getLookup().get(columnName);
-        valueStack.push(columnValue);
+
+        for (Tuple tuple : tuples) {
+            Integer columnValue = tuple.getLookup().get(columnName);
+            if (columnValue != null) {
+                valueStack.push(columnValue);
+                break;
+            }
+        }
     }
 
     @Override

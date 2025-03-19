@@ -2,7 +2,7 @@ package ed.inf.adbs.blazedb.operator;
 
 import java.io.IOException;
 
-import ed.inf.adbs.blazedb.JoinExpressionEvaluator;
+import ed.inf.adbs.blazedb.EvaluationDeparser;
 import ed.inf.adbs.blazedb.entity.Tuple;
 import net.sf.jsqlparser.expression.Expression;
 
@@ -12,13 +12,11 @@ public class JoinOperator extends Operator {
     private final String leftTableName;
     private final String rightTableName;
     private final Expression expression;
-    private final JoinExpressionEvaluator joinExpressionEvaluator;
 
-    public JoinOperator(String leftTableName, String rightTableName, Expression expression, JoinExpressionEvaluator joinExpressionEvaluator) {
+    public JoinOperator(String leftTableName, String rightTableName, Expression expression) {
         this.leftTableName = leftTableName;
         this.rightTableName = rightTableName;
         this.expression = expression;
-        this.joinExpressionEvaluator = joinExpressionEvaluator;
     }
 
     public String getLeftTableName() {
@@ -44,12 +42,13 @@ public class JoinOperator extends Operator {
         Tuple rightTuple;
         while ((leftTuple = leftChild.getNextTuple()) != null) {
             while ((rightTuple = rightChild.getNextTuple()) != null) {
-                joinExpressionEvaluator.setLeftTuple(leftTuple);
-                joinExpressionEvaluator.setRightTuple(rightTuple);
-                expression.accept(joinExpressionEvaluator);
+                EvaluationDeparser evaluationDeparser = new EvaluationDeparser();
+                evaluationDeparser.addTuple(leftTuple);
+                evaluationDeparser.addTuple(rightTuple);
+                expression.accept(evaluationDeparser);
 
-                if (joinExpressionEvaluator.getOutput()) {
-                    return leftTuple.join(rightTuple, joinExpressionEvaluator.getRightJoinColumns());
+                if (evaluationDeparser.getOutput()) {
+                    return leftTuple.join(rightTuple);
                 }
             }
             try {
