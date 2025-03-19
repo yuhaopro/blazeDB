@@ -14,11 +14,15 @@ import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
 
-public class ExpressionEvaluator extends ExpressionDeParser {
+
+/**
+ * @implNote this class is used for evaluating the final expression value
+ */
+public class EvaluationDeparser extends ExpressionDeParser {
     private Tuple tuple;
     private final Stack<Integer> valueStack = new Stack<>();
     private final Stack<Boolean> outputStack = new Stack<>();
-    public ExpressionEvaluator() {
+    public EvaluationDeparser() {
         super();
     }
 

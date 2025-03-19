@@ -1,102 +1,60 @@
 package ed.inf.adbs.blazedb;
 
-import ed.inf.adbs.blazedb.operator.*;
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import ed.inf.adbs.blazedb.operator.JoinOperator;
+import ed.inf.adbs.blazedb.operator.Operator;
+import ed.inf.adbs.blazedb.operator.ProjectOperator;
+import ed.inf.adbs.blazedb.operator.ScanOperator;
+import ed.inf.adbs.blazedb.operator.SelectOperator;
 import net.sf.jsqlparser.expression.Expression;
+import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.operators.arithmetic.Multiplication;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
-import net.sf.jsqlparser.statement.Statement;
+import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.statement.select.AllColumns;
+import net.sf.jsqlparser.statement.select.FromItem;
+import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.OrderByElement;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectItem;
-import net.sf.jsqlparser.util.TablesNamesFinder;
-
-import java.io.FileNotFoundException;
-import java.util.*;
-import java.util.stream.Collectors;
 
 public class QueryPlanBuilder {
+    private static final Logger logger = Logger.getLogger(QueryPlanBuilder.class.getName());
     private HashMap<String, ScanOperator> scanOperators = new LinkedHashMap<>();
     private List<String> tableOrder = new ArrayList<>();
-    private ProjectOperator projectOperator;
-    private HashMap<String, SelectOperator> selectOperators = new HashMap<>();
-    private ExpressionSplitter expressionSplitter;
-    // join key format {left_table_name.right_table_name}
-    private HashMap<String, JoinOperator> joinOperators = new HashMap<>();
+    private HashMap<String, HashSet<String>> projectedColumnLookup = new HashMap<>();
+    private HashMap<String, Expression> singleExpressions = new HashMap<>();
+    private HashMap<String, List<Expression>> joinExpressions = new HashMap<>();
+    private List<String> orderBy = new ArrayList<>();
 
     public QueryPlanBuilder(Select query) {
 
-        // SELECT
-        List<SelectItem<?>> selectItems = query.getPlainSelect().getSelectItems();
-        List<String> selectItemsInString = new ArrayList<String>();
-        for (SelectItem<?> selectItem : selectItems) {
-            selectItemsInString.add(selectItem.toString());
-        }
-
-        if (!selectItemsInString.contains("*")) {
-            projectOperator = new ProjectOperator(selectItemsInString);
-        }
-
         // FROM
-        List<String> tables = getTablesFromQuery(query);
-        for (String table : tables) {
-            try {
-                scanOperators.put(table, new ScanOperator(table));
-                tableOrder.add(table);
-            } catch (FileNotFoundException e) {
-                System.err.println(e.getMessage());
-            }
+        this.tableOrder = getTablesFromQuery(query);
+
+        // initialize projectedColumnLookup
+        for (String tableName : tableOrder) {
+            projectedColumnLookup.putIfAbsent(tableName, new HashSet<>());
         }
 
-        // WHERE
-        Expression expression = query.getPlainSelect().getWhere();
-        // extract JOIN conditions
-        // extract Selection for a single table
-        // exit the selectOperator
-        if (expression == null) {
-            return;
-        }
+        // SELECT
+        this.projectedColumnLookup = addUniqueColumnsFromSelect(query);
 
-        ExpressionSplitter expressionSplitter = new ExpressionSplitter(expression);
-        expressionSplitter.split();
-
-        // get the final expression that doesn't have
-        SplitExpression startingExpression = expressionSplitter.getOutputStack().pop();
-        if (startingExpression.isJoinExpression()) {
-            expressionSplitter.getJoinExpressions().add(startingExpression);
-        } else {
-            String tableName = startingExpression.getTableName();
-            expressionSplitter.getSingleExpressions().computeIfAbsent(tableName, k -> new ArrayList<>()).add(startingExpression);
-        }
-
-        // create select operators for single tables
-        for (Map.Entry<String, List<SplitExpression>> entry : expressionSplitter.getSingleExpressions().entrySet()) {
-            String combinedExpressionString = "";
-            List<SplitExpression> splitExpressions = entry.getValue();
-            if (splitExpressions.isEmpty()) {
-                continue;
-            }
-
-            SplitExpression firstExpression = splitExpressions.get(0);
-            combinedExpressionString += firstExpression.getExpression() + " " + "AND" + " ";
-
-            for (int i = 1; i < splitExpressions.size(); i++) {
-                combinedExpressionString += splitExpressions.get(i).getExpression() + " " + "AND";
-            }
-
-            try {
-                Expression expressionObject = CCJSqlParserUtil.parseCondExpression(combinedExpressionString);
-                SelectOperator selectOperator = new SelectOperator(entry.getKey(), expressionObject);
-                selectOperators.put(entry.getKey(), selectOperator);
-
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-
-
-        }
+        // WHERE 
 
 
         // ORDER BY
-        List<String> orderBy = query.getPlainSelect().getOrderByElements().stream().map(OrderByElement::toString).collect(Collectors.toList());
+        this.orderBy = query.getPlainSelect().getOrderByElements().stream().map(OrderByElement::toString).collect(Collectors.toList());
 
 
 
@@ -105,51 +63,112 @@ public class QueryPlanBuilder {
     public QueryPlan build() throws FileNotFoundException {
 
         // Gathering the inputs
-        Operator root;
+        ScanOperator scanOperator = new ScanOperator(null);
+        return new QueryPlan(scanOperator);
 
         // case for only 1 table (no joins)
-        if (tableOrder.size() == 1) {
-            ScanOperator scanOperator = scanOperators.get(tableOrder.get(0));
-            SelectOperator selectOperator = selectOperators.get(tableOrder.get(0));
+        // if (tableOrder.size() == 1) {
+        //     ScanOperator scanOperator = scanOperators.get(tableOrder.get(0));
+        //     SelectOperator selectOperator = selectOperators.get(tableOrder.get(0));
 
-            if (selectOperator != null) {
-                selectOperator.setChild(scanOperator);
-                if (projectOperator != null) {
-                    projectOperator.setChild(selectOperator);
-                    root = projectOperator;
-                } else {
-                    root = selectOperator;
+        //     if (selectOperator != null) {
+        //         selectOperator.setChild(scanOperator);
+        //         if (projectOperator != null) {
+        //             projectOperator.setChild(selectOperator);
+        //             root = projectOperator;
+        //         } else {
+        //             root = selectOperator;
+        //         }
+        //     } else {
+        //         if (projectOperator != null) {
+        //             projectOperator.setChild(scanOperator);
+        //             root = projectOperator;
+        //         } else {
+        //             root = scanOperator;
+        //         }
+        //     }
+        //     return new QueryPlan(root);
+        // }
+        // return null;
+    }
+
+    public HashMap<String, HashSet<String>> addUniqueColumnsFromSelect(Select query) {
+        // SELECT
+        HashMap<String, HashSet<String>> projectedColumns = new HashMap<>();
+        List<SelectItem<?>> selectItems = query.getPlainSelect().getSelectItems();
+        for (SelectItem<?> selectItem : selectItems) {
+
+            Expression selectExpression = selectItem.getExpression();
+            // no projection required
+            if (selectExpression instanceof AllColumns) {
+                break;
+            }
+
+            if (selectExpression instanceof Column) {
+                Column column = (Column) selectExpression;
+                String tableName = column.getTable().getName();
+                projectedColumns.get(tableName).add(column.toString());
+                continue;
+            }
+
+            if (selectExpression instanceof Function) {
+                Function sumFunction = (Function) selectExpression;
+
+                // should only have 1 expression
+                ExpressionList<Expression> sumExpressionList = sumFunction.getParameters();
+                if (sumExpressionList.size() != 1) {
+                    logger.warning("sumExpressionList does not have size of 1!");
+                    continue;
                 }
-            } else {
-                if (projectOperator != null) {
-                    projectOperator.setChild(scanOperator);
-                    root = projectOperator;
-                } else {
-                    root = scanOperator;
+
+                Expression sumExpression = sumExpressionList.getFirst();
+                if (sumExpression instanceof Multiplication) {
+                    // extract all the columns
+                    ExtractColumnDeparser extractColumnDeparser = new ExtractColumnDeparser();
+                    sumExpression.accept(extractColumnDeparser);
+                    List<Column> extractedColumns = extractColumnDeparser.getExtractedColumns();
+                    addExtractedColumnsToProjectedLookup(extractedColumns);
                 }
             }
-            return new QueryPlan(root);
-        }
 
-        // query with joins
-//        String firstTable =  tableOrder.get(0);
-//        String secondTable =  tableOrder.get(1);
-//        // create subsequent subtrees
-//        int tableOrderIndex = 1;
-//        while (tableOrderIndex < tableOrder.size()) {
-//
-//            tableOrderIndex++;
-//        }
-//
-//
-//        return new QueryPlan(root);
-        return null;
+        }
+        return projectedColumns;
     }
 
     public List<String> getTablesFromQuery(Select query) {
-        TablesNamesFinder tablesNamesFinder = new TablesNamesFinder();
-        List<String> tableList = tablesNamesFinder.getTableList((Statement) query);
+        List<String> tableList = new ArrayList<>();
+        FromItem firstTable = query.getPlainSelect().getFromItem();
+        tableList.add(firstTable.toString());
+        
+        List<Join> joinTables = query.getPlainSelect().getJoins();
+        for (Join join : joinTables) {
+            tableList.add(join.toString());
+        }
         return tableList;
+    }
+
+    public void processWhereExpressions(Select query) {
+        Expression expression = query.getPlainSelect().getWhere();
+
+        List<Column> extractedColumns = getUniqueColumnsFromWhereExpression(expression);
+        addExtractedColumnsToProjectedLookup(extractedColumns);
+
+
+    }
+
+    public void 
+
+    public void addExtractedColumnsToProjectedLookup(List<Column> extractedColumns) {
+        for (Column column : extractedColumns) {
+            String tableName = column.getTable().getName();
+            projectedColumnLookup.get(tableName).add(column.toString());
+        }
+    }
+
+    public List<Column> getUniqueColumnsFromWhereExpression(Expression whereExpression) {
+        ExtractColumnDeparser extractColumnDeparser = new ExtractColumnDeparser();
+        whereExpression.accept(extractColumnDeparser);
+        return extractColumnDeparser.getExtractedColumns();
     }
 
 }

@@ -31,6 +31,7 @@ public class JoinOperatorTest {
         Expression expression = CCJSqlParserUtil.parseExpression(raw_expression);
         String leftTable = "Student";
         String rightTable = "Enrolled";
+    
         JoinExpressionEvaluator joinExpressionEvaluator = new JoinExpressionEvaluator();
         JoinOperator joinOperator = new JoinOperator(leftTable, rightTable, expression, joinExpressionEvaluator);
      

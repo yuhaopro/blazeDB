@@ -1,6 +1,6 @@
 package ed.inf.adbs.blazedb.operator;
 
-import ed.inf.adbs.blazedb.ExpressionEvaluator;
+import ed.inf.adbs.blazedb.WhereExpressionDeparser;
 import ed.inf.adbs.blazedb.entity.Tuple;
 import net.sf.jsqlparser.expression.Expression;
 
@@ -9,11 +9,11 @@ import java.io.IOException;
 public class SelectOperator extends Operator {
     private Operator child;
     private final Expression expression;
-    private final ExpressionEvaluator expressionDeParser;
+    private final WhereExpressionDeparser expressionDeParser;
     private final String tableName;
     public SelectOperator(String tableName, Expression expression) {
         this.expression = expression;
-        this.expressionDeParser = new ExpressionEvaluator();
+        this.expressionDeParser = new WhereExpressionDeparser();
         this.tableName = tableName;
     }
 
