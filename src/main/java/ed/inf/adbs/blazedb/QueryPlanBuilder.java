@@ -4,22 +4,21 @@ import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
-import ed.inf.adbs.blazedb.operator.JoinOperator;
+import ed.inf.adbs.blazedb.operator.DuplicateEliminationOperator;
 import ed.inf.adbs.blazedb.operator.Operator;
 import ed.inf.adbs.blazedb.operator.ProjectOperator;
 import ed.inf.adbs.blazedb.operator.ScanOperator;
 import ed.inf.adbs.blazedb.operator.SelectOperator;
+import ed.inf.adbs.blazedb.operator.SortOperator;
+import ed.inf.adbs.blazedb.operator.SumOperator;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.operators.arithmetic.Multiplication;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
-import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.FromItem;
@@ -31,7 +30,6 @@ import net.sf.jsqlparser.statement.select.SelectItem;
 
 public class QueryPlanBuilder {
     private static final Logger logger = Logger.getLogger(QueryPlanBuilder.class.getName());
-    private boolean isWhereExpressionAlwaysFalse = false;
     private boolean isQueryDistinct = false;
     private List<String> tableOrder = new ArrayList<>();
     private HashMap<String, HashSet<String>> projectedColumnLookup = new HashMap<>();
@@ -55,9 +53,8 @@ public class QueryPlanBuilder {
         initializeIsDistinct(query);
 
         // WHERE 
-        addUniqueColumnsFromWhereExpression(query);
+        addUniqueColumnsFromWhereClause(query);
         initializeSingleAndJoinExpressions(query);
-
         // ORDER BY 
         initializeOrderBy(query);
 
@@ -79,15 +76,48 @@ public class QueryPlanBuilder {
         }
     }
 
-
     private QueryPlan buildQueryPlanForJoinTables() {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'buildQueryPlanForJoinTables'");
     }
 
     private QueryPlan buildQueryPlanForSingleTable() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'buildQueryPlanForSingleTable'");
+        Operator root = null;
+
+        String table = tableOrder.get(0);
+        // table
+        ScanOperator scanOperator = new ScanOperator(table);
+        root = scanOperator;
+
+        // selection
+        SelectOperator selectOperator = new SelectOperator(table, this.singleExpressions.get(table));
+        selectOperator.setChild(root);
+        root = selectOperator;
+        
+
+
+        // projection first to reduce columns
+        List<String> columns = projectedColumnLookup.get(table).stream().toList();
+        ProjectOperator projectOperator = new ProjectOperator(columns);
+        projectOperator.setChild(root);
+        root = projectOperator;
+        
+        // group by
+        SumOperator sumOperator = new SumOperator(groupByElement, selectExpressionList);
+        sumOperator.setChild(root);
+        root = sumOperator;
+        
+        // order by and distinct
+        if (!orderBy.isEmpty()) {
+            SortOperator sortOperator = new SortOperator(orderBy ,isQueryDistinct);
+            sortOperator.setChild(root);
+            root = sortOperator;
+        } else if (isQueryDistinct) {
+            DuplicateEliminationOperator duplicateEliminationOperator = new DuplicateEliminationOperator();
+            duplicateEliminationOperator.setChild(root);
+            root = duplicateEliminationOperator;
+        }
+        return new QueryPlan(root);
     }
 
     public void initializeIsDistinct(Select query) {
@@ -174,22 +204,18 @@ public class QueryPlanBuilder {
         this.tableOrder = tableList;
     }
 
-    public void addUniqueColumnsFromWhereExpression(Select query) {
+    public void addUniqueColumnsFromWhereClause(Select query) {
         Expression expression = query.getPlainSelect().getWhere();
         List<Column> extractedColumns = getUniqueColumnsFromWhereExpression(expression);
         addExtractedColumnsToProjectedLookup(extractedColumns);
     }
 
     public void initializeSingleAndJoinExpressions(Select query) {
-        Expression expression = query.getPlainSelect().getWhere();
-        initializeSingleAndJoinExpressions(expression);
-
-    }
-
-    public void initializeSingleAndJoinExpressions(Expression whereExpression) {
-        SplitExpressionDeparser splitExpressionDeparser = new SplitExpressionDeparser(singleExpressions, joinExpressions);
+        Expression whereExpression = query.getPlainSelect().getWhere();
+        SplitExpressionDeparser splitExpressionDeparser = new SplitExpressionDeparser();
         whereExpression.accept(splitExpressionDeparser);
-        this.isWhereExpressionAlwaysFalse =  splitExpressionDeparser.getExpressionIsAlwaysFalse();
+        this.singleExpressions = splitExpressionDeparser.getSingleExpressions();
+        this.joinExpressions = splitExpressionDeparser.getJoinExpressions();
     }
 
     public void addExtractedColumnsToProjectedLookup(List<Column> extractedColumns) {

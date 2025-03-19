@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.List;
 
 public class CSVParser {
-    private final BufferedReader reader;
+    private BufferedReader reader;
     private List<String> currentRow;
     private String delimiter = ",";
 
@@ -17,13 +17,18 @@ public class CSVParser {
         this.delimiter = delimiter;
     }
 
-    public CSVParser(String filePath) throws FileNotFoundException {
-        this.reader = new BufferedReader(new FileReader(filePath));
-
+    public CSVParser(String filePath) {
+        try {
+            this.reader = new BufferedReader(new FileReader(filePath));
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            this.reader = null;
+        }
     }
 
     // advance the scanner
     public boolean hasNext() {
+        if (this.reader == null) return false;
         try {
             String line = reader.readLine();
             if (line != null) {

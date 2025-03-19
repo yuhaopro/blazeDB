@@ -15,7 +15,7 @@ import net.sf.jsqlparser.expression.operators.relational.NotEqualsTo;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
 
-// Expression is always column to column comparison
+// TODO: merge this with EvaluationDeparser?
 public class JoinExpressionEvaluator extends ExpressionDeParser {
     private Tuple leftTuple;
     private Tuple rightTuple;

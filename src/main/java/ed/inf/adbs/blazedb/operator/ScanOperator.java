@@ -17,7 +17,7 @@ public class ScanOperator extends Operator {
      *
      * @param tableName
      */
-    public ScanOperator(String tableName) throws FileNotFoundException {
+    public ScanOperator(String tableName) {
         String tablePath = DatabaseCatalog.getInstance().getTablePath(tableName);
         this.tablePath = tablePath;
         this.tableName = tableName;

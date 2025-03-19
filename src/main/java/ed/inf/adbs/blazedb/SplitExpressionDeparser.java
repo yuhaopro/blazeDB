@@ -18,13 +18,11 @@ import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
 public class SplitExpressionDeparser extends ExpressionDeParser {
 
     private boolean expressionIsAlwaysFalse = false;
-    private final HashMap<String, List<Expression>> singleExpressions;
-    private final HashMap<String, List<Expression>> joinExpressions;
+    private final HashMap<String, List<Expression>> singleExpressions = new HashMap<>();
+    private final HashMap<String, List<Expression>> joinExpressions = new HashMap<>();
     
-    public SplitExpressionDeparser(HashMap<String, List<Expression>> singleExpressions,
-            HashMap<String, List<Expression>> joinExpressions) {
-        this.singleExpressions = singleExpressions;
-        this.joinExpressions = joinExpressions;
+    public SplitExpressionDeparser() {
+
     }
 
     /**
@@ -35,6 +33,13 @@ public class SplitExpressionDeparser extends ExpressionDeParser {
         return expressionIsAlwaysFalse;
     }
 
+    public HashMap<String, List<Expression>> getSingleExpressions() {
+        return singleExpressions;
+    }
+
+    public HashMap<String, List<Expression>> getJoinExpressions() {
+        return joinExpressions;
+    }
     @Override
     public void visit(EqualsTo equalsTo) {
         super.visit(equalsTo);

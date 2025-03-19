@@ -21,4 +21,5 @@ public abstract class Operator {
      * Resets the iterator to the start.
      */
     public abstract void reset() throws IOException;
+
 }
