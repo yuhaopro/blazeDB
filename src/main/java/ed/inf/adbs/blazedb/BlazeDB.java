@@ -45,9 +45,9 @@ public class BlazeDB {
         }
         Select select = (Select) statement;
 
-        QueryPlan queryPlan = new QueryPlanBuilder(select).build();
+        Operator root = new QueryPlanBuilder(select).build();
 //      QueryPlan queryPlan = new QueryOptimizer(queryPlans).optimize();
-        execute(queryPlan.getRoot(), outputFile);
+        execute(root, outputFile);
 
 
     }

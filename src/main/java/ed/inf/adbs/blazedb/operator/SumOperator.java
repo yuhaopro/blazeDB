@@ -20,6 +20,7 @@ import net.sf.jsqlparser.statement.select.GroupByElement;
 // groupBy should not have duplicates
 // should ignore the column without aggregation, simply return tuple
 public class SumOperator extends Operator {
+	
 	Operator child;
 	ExpressionList<Expression> groupByExpressionList;
 	ExpressionList<Expression> selectExpressionList;
@@ -202,5 +203,6 @@ public class SumOperator extends Operator {
 	public void reset() {
 		this.outputTuplesIterator = outputTuples.iterator();
 	}
+
 
 }

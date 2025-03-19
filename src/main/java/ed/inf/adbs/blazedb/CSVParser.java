@@ -6,6 +6,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class CSVParser {
     private BufferedReader reader;
@@ -33,6 +34,7 @@ public class CSVParser {
             String line = reader.readLine();
             if (line != null) {
                 currentRow = Arrays.asList(line.split(delimiter));
+                currentRow = currentRow.stream().map(String::trim).collect(Collectors.toList());
                 return true;
             }
             return false;

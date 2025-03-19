@@ -1,26 +1,23 @@
 package ed.inf.adbs.blazedb;
 
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import java.io.FileNotFoundException;
+import java.text.MessageFormat;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 import org.junit.Test;
 
+import ed.inf.adbs.blazedb.entity.Tuple;
+import ed.inf.adbs.blazedb.operator.Operator;
 import net.sf.jsqlparser.JSQLParserException;
-import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.operators.arithmetic.Multiplication;
-import net.sf.jsqlparser.parser.CCJSqlParser;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
-import net.sf.jsqlparser.parser.JSqlParser;
 import net.sf.jsqlparser.schema.Column;
-import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.Distinct;
@@ -28,7 +25,6 @@ import net.sf.jsqlparser.statement.select.FromItem;
 import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectItem;
-import net.sf.jsqlparser.util.TablesNamesFinder;
 
 /**
  * Unit tests for BlazeDB.
@@ -42,6 +38,41 @@ public class BlazeDBTest {
 	public void shouldAnswerWithTrue() {
        
 		assertTrue(true);
+	}
+
+	@Test
+	public void sampleQueries() throws JSQLParserException, FileNotFoundException {
+		String queryDirectory = "samples/input/query{0}.sql";
+		String expectedOutputDirectory = "samples/expected_output/query{0}.csv";
+		String databaseDirectory = "samples/db";
+
+		DatabaseCatalog.getInstance().initialize(databaseDirectory);
+
+		for (int i = 1; i < 12; i++) {
+			String filename = MessageFormat.format(queryDirectory, i);
+			String expectedOutputPath = MessageFormat.format(expectedOutputDirectory, i);
+			Statement statement = BlazeDB.parseSQLFromFilename(filename);
+			Select select = (Select) statement;
+			System.out.println("Statement: " + select.toString());
+			Operator root = new QueryPlanBuilder(select).build();
+			
+			CSVParser csvParser = new CSVParser(expectedOutputPath);
+			while (csvParser.hasNext()) {
+				Tuple tuple = root.getNextTuple();
+				List<String> expectedValues = csvParser.next();
+				System.out.println("TupleColumnOrder: " + tuple.getColumns().toString());
+
+				List<String> actualValues = new ArrayList<>();
+				for (String column : tuple.getColumns()) {
+					Integer value = tuple.getLookup().get(column);
+					actualValues.add(value.toString());
+				}
+
+				assertEquals(expectedValues, actualValues);
+			}
+
+		}
+
 	}
 
     @Test

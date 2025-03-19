@@ -1,5 +1,6 @@
 package ed.inf.adbs.blazedb;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
@@ -89,12 +90,14 @@ public class SplitExpressionDeparser extends ExpressionDeParser {
             String rightTableName = rightColumn.getTable().getName();
             // left and right tables are different
             if (!leftTableName.equals(rightTableName)) {
-
+                joinExpressions.putIfAbsent(leftTableName, new ArrayList<>());
                 joinExpressions.get(leftTableName).add(operator);
+                joinExpressions.putIfAbsent(rightTableName, new ArrayList<>());
                 joinExpressions.get(rightTableName).add(operator);
                 return;
             }
-
+            
+            joinExpressions.putIfAbsent(leftTableName, new ArrayList<>());
             singleExpressions.get(leftTableName).add(operator);
         }
 
@@ -102,6 +105,7 @@ public class SplitExpressionDeparser extends ExpressionDeParser {
         if (left instanceof Column) {
             Column column = (Column) left;
             String tableName = column.getTable().getName();
+            singleExpressions.putIfAbsent(tableName, new ArrayList<>());
             singleExpressions.get(tableName).add(operator);
             return;
         }
@@ -109,6 +113,7 @@ public class SplitExpressionDeparser extends ExpressionDeParser {
         if (right instanceof Column) {
             Column column = (Column) right;
             String tableName = column.getTable().getName();
+            singleExpressions.putIfAbsent(tableName, new ArrayList<>());
             singleExpressions.get(tableName).add(operator);
             return;
         }

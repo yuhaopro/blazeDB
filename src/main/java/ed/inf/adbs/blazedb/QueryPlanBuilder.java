@@ -31,7 +31,13 @@ import net.sf.jsqlparser.statement.select.SelectItem;
 public class QueryPlanBuilder {
     private static final Logger logger = Logger.getLogger(QueryPlanBuilder.class.getName());
     private boolean isQueryDistinct = false;
+    private boolean isAllColumns = false;
+    private boolean isThereWhereExpressions = false;
+    private boolean isThereGroupBy = false;
+    private boolean isThereSumFunction = false;
+    private boolean isThereOrderBy = false;
     private List<String> tableOrder = new ArrayList<>();
+    private List<String> columnOrder = new ArrayList<>();
     private HashMap<String, HashSet<String>> projectedColumnLookup = new HashMap<>();
     private HashMap<String, List<Expression>> singleExpressions = new HashMap<>();
     private HashMap<String, List<Expression>> joinExpressions = new HashMap<>();
@@ -45,28 +51,24 @@ public class QueryPlanBuilder {
         addTablesFromQuery(query);
         initializeHashmaps(tableOrder);
 
-        // SELECT
+        // SELECT, PROJECT
         initializeSelectExpressionList(query);
         addUniqueColumnsFromSelect(query);
 
         // DISTINCT
         initializeIsDistinct(query);
 
-        // WHERE 
-        addUniqueColumnsFromWhereClause(query);
-        initializeSingleAndJoinExpressions(query);
-        // ORDER BY 
+        // WHERE, PROJECT
+        processWhereExpression(query);
+        // ORDER BY
         initializeOrderBy(query);
 
         // GROUP BY
         initializeGroupByElement(query);
 
-        
-
-
     }
 
-    public QueryPlan build() throws FileNotFoundException {
+    public Operator build() throws FileNotFoundException {
 
         // single table
         if (tableOrder.size() == 1) {
@@ -76,12 +78,13 @@ public class QueryPlanBuilder {
         }
     }
 
-    private QueryPlan buildQueryPlanForJoinTables() {
+
+    private Operator buildQueryPlanForJoinTables() {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'buildQueryPlanForJoinTables'");
     }
 
-    private QueryPlan buildQueryPlanForSingleTable() {
+    private Operator buildQueryPlanForSingleTable() {
         Operator root = null;
 
         String table = tableOrder.get(0);
@@ -90,38 +93,49 @@ public class QueryPlanBuilder {
         root = scanOperator;
 
         // selection
-        SelectOperator selectOperator = new SelectOperator(table, this.singleExpressions.get(table));
-        selectOperator.setChild(root);
-        root = selectOperator;
-        
+        if (isThereWhereExpressions) {
+            SelectOperator selectOperator = new SelectOperator(table, this.singleExpressions.get(table));
+            selectOperator.setChild(root);
+            root = selectOperator;
+        }
 
+        // projection first to reduce columns, if all columns required, then don't
+        // create projection.
+        if (!isAllColumns) {
+            // List<String> columns = projectedColumnLookup.get(table).stream().toList();
 
-        // projection first to reduce columns
-        List<String> columns = projectedColumnLookup.get(table).stream().toList();
-        ProjectOperator projectOperator = new ProjectOperator(columns);
-        projectOperator.setChild(root);
-        root = projectOperator;
-        
+            ProjectOperator projectOperator = new ProjectOperator(columnOrder);
+            projectOperator.setChild(root);
+            root = projectOperator;
+        }
+
         // group by
-        SumOperator sumOperator = new SumOperator(groupByElement, selectExpressionList);
-        sumOperator.setChild(root);
-        root = sumOperator;
-        
+        if (isThereGroupBy || isThereSumFunction) {
+            SumOperator sumOperator = new SumOperator(groupByElement, selectExpressionList);
+            sumOperator.setChild(root);
+            root = sumOperator;            
+        }
+
+
         // order by and distinct
-        if (!orderBy.isEmpty()) {
-            SortOperator sortOperator = new SortOperator(orderBy ,isQueryDistinct);
+        if (isThereOrderBy) {
+            SortOperator sortOperator = new SortOperator(orderBy, isQueryDistinct);
             sortOperator.setChild(root);
             root = sortOperator;
+        
+        // just distinct
         } else if (isQueryDistinct) {
             DuplicateEliminationOperator duplicateEliminationOperator = new DuplicateEliminationOperator();
             duplicateEliminationOperator.setChild(root);
             root = duplicateEliminationOperator;
         }
-        return new QueryPlan(root);
+
+        return root;
     }
 
     public void initializeIsDistinct(Select query) {
-        this.isQueryDistinct = !query.getPlainSelect().getDistinct().equals(null);
+        if (query.getPlainSelect().getDistinct() != null)
+            this.isQueryDistinct = true;
     }
 
     public void initializeHashmaps(List<String> tableOrder) {
@@ -134,12 +148,18 @@ public class QueryPlanBuilder {
     }
 
     public void initializeOrderBy(Select query) {
-        this.orderBy = query.getPlainSelect().getOrderByElements().stream().map(OrderByElement::toString).collect(Collectors.toList());
-
+        List<OrderByElement> orderByElements = query.getPlainSelect().getOrderByElements();
+        if (orderByElements == null)
+            return;
+        this.orderBy = orderByElements.stream().map(OrderByElement::toString).collect(Collectors.toList());
+        isThereOrderBy = true;
     }
 
     public void initializeGroupByElement(Select query) {
-        this.groupByElement = query.getPlainSelect().getGroupBy();
+        GroupByElement groupByElement = query.getPlainSelect().getGroupBy();
+        if (this.groupByElement == null) return;
+        this.groupByElement = groupByElement;
+        isThereGroupBy = true;
     }
 
     public void initializeSelectExpressionList(Select query) {
@@ -158,19 +178,23 @@ public class QueryPlanBuilder {
             Expression selectExpression = selectItem.getExpression();
             // no projection required
             if (selectExpression instanceof AllColumns) {
+                this.isAllColumns = true;
                 break;
             }
 
             if (selectExpression instanceof Column) {
                 Column column = (Column) selectExpression;
                 String tableName = column.getTable().getName();
+                projectedColumns.putIfAbsent(tableName, new HashSet<>());
                 projectedColumns.get(tableName).add(column.toString());
+                columnOrder.add(column.toString());
                 continue;
             }
 
             if (selectExpression instanceof Function) {
+                this.isThereSumFunction = true;
                 Function sumFunction = (Function) selectExpression;
-
+                columnOrder.add(sumFunction.toString());
                 // should only have 1 expression
                 ExpressionList<Expression> sumExpressionList = sumFunction.getParameters();
                 if (sumExpressionList.size() != 1) {
@@ -196,31 +220,36 @@ public class QueryPlanBuilder {
         List<String> tableList = new ArrayList<>();
         FromItem firstTable = query.getPlainSelect().getFromItem();
         tableList.add(firstTable.toString());
-        
+
         List<Join> joinTables = query.getPlainSelect().getJoins();
-        for (Join join : joinTables) {
-            tableList.add(join.toString());
+        if (joinTables != null) {
+            for (Join join : joinTables) {
+                tableList.add(join.toString());
+            }
         }
+
         this.tableOrder = tableList;
     }
 
-    public void addUniqueColumnsFromWhereClause(Select query) {
-        Expression expression = query.getPlainSelect().getWhere();
-        List<Column> extractedColumns = getUniqueColumnsFromWhereExpression(expression);
-        addExtractedColumnsToProjectedLookup(extractedColumns);
-    }
-
-    public void initializeSingleAndJoinExpressions(Select query) {
+    public void processWhereExpression(Select query) {
         Expression whereExpression = query.getPlainSelect().getWhere();
+        if (whereExpression == null)
+            return;
+        List<Column> extractedColumns = getUniqueColumnsFromWhereExpression(whereExpression);
+        addExtractedColumnsToProjectedLookup(extractedColumns);
+
         SplitExpressionDeparser splitExpressionDeparser = new SplitExpressionDeparser();
         whereExpression.accept(splitExpressionDeparser);
         this.singleExpressions = splitExpressionDeparser.getSingleExpressions();
         this.joinExpressions = splitExpressionDeparser.getJoinExpressions();
+        this.isThereWhereExpressions = true;
     }
+
 
     public void addExtractedColumnsToProjectedLookup(List<Column> extractedColumns) {
         for (Column column : extractedColumns) {
             String tableName = column.getTable().getName();
+            projectedColumnLookup.putIfAbsent(tableName, new HashSet<>());
             projectedColumnLookup.get(tableName).add(column.toString());
         }
     }
