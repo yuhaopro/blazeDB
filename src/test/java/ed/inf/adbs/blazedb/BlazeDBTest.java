@@ -2,6 +2,7 @@ package ed.inf.adbs.blazedb;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
@@ -22,6 +23,7 @@ import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.schema.Table;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.AllColumns;
+import net.sf.jsqlparser.statement.select.Distinct;
 import net.sf.jsqlparser.statement.select.FromItem;
 import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.Select;
@@ -90,6 +92,13 @@ public class BlazeDBTest {
 			assertTrue(sumFunction.getParameters().get(0) instanceof Multiplication);
 		}
 	
+    }
+	@Test
+    public void testSelectItemsWithDistinct() throws JSQLParserException {
+        Statement statement = CCJSqlParserUtil.parse("SELECT * FROM A");
+        Select select = (Select) statement;
+		Distinct distinct = select.getPlainSelect().getDistinct();
+		assertNull(distinct);
     }
 
 }

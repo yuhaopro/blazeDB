@@ -23,6 +23,7 @@ import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.FromItem;
+import net.sf.jsqlparser.statement.select.GroupByElement;
 import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.OrderByElement;
 import net.sf.jsqlparser.statement.select.Select;
@@ -30,69 +31,95 @@ import net.sf.jsqlparser.statement.select.SelectItem;
 
 public class QueryPlanBuilder {
     private static final Logger logger = Logger.getLogger(QueryPlanBuilder.class.getName());
-    private HashMap<String, ScanOperator> scanOperators = new LinkedHashMap<>();
+    private boolean isWhereExpressionAlwaysFalse = false;
+    private boolean isQueryDistinct = false;
     private List<String> tableOrder = new ArrayList<>();
     private HashMap<String, HashSet<String>> projectedColumnLookup = new HashMap<>();
-    private HashMap<String, Expression> singleExpressions = new HashMap<>();
+    private HashMap<String, List<Expression>> singleExpressions = new HashMap<>();
     private HashMap<String, List<Expression>> joinExpressions = new HashMap<>();
     private List<String> orderBy = new ArrayList<>();
+    private GroupByElement groupByElement;
+    private ExpressionList<Expression> selectExpressionList;
 
     public QueryPlanBuilder(Select query) {
-
+        query.getPlainSelect().getDistinct();
         // FROM
-        this.tableOrder = getTablesFromQuery(query);
-
-        // initialize projectedColumnLookup
-        for (String tableName : tableOrder) {
-            projectedColumnLookup.putIfAbsent(tableName, new HashSet<>());
-        }
+        addTablesFromQuery(query);
+        initializeHashmaps(tableOrder);
 
         // SELECT
-        this.projectedColumnLookup = addUniqueColumnsFromSelect(query);
+        initializeSelectExpressionList(query);
+        addUniqueColumnsFromSelect(query);
+
+        // DISTINCT
+        initializeIsDistinct(query);
 
         // WHERE 
+        addUniqueColumnsFromWhereExpression(query);
+        initializeSingleAndJoinExpressions(query);
 
+        // ORDER BY 
+        initializeOrderBy(query);
 
-        // ORDER BY
-        this.orderBy = query.getPlainSelect().getOrderByElements().stream().map(OrderByElement::toString).collect(Collectors.toList());
+        // GROUP BY
+        initializeGroupByElement(query);
 
+        
 
 
     }
 
     public QueryPlan build() throws FileNotFoundException {
 
-        // Gathering the inputs
-        ScanOperator scanOperator = new ScanOperator(null);
-        return new QueryPlan(scanOperator);
-
-        // case for only 1 table (no joins)
-        // if (tableOrder.size() == 1) {
-        //     ScanOperator scanOperator = scanOperators.get(tableOrder.get(0));
-        //     SelectOperator selectOperator = selectOperators.get(tableOrder.get(0));
-
-        //     if (selectOperator != null) {
-        //         selectOperator.setChild(scanOperator);
-        //         if (projectOperator != null) {
-        //             projectOperator.setChild(selectOperator);
-        //             root = projectOperator;
-        //         } else {
-        //             root = selectOperator;
-        //         }
-        //     } else {
-        //         if (projectOperator != null) {
-        //             projectOperator.setChild(scanOperator);
-        //             root = projectOperator;
-        //         } else {
-        //             root = scanOperator;
-        //         }
-        //     }
-        //     return new QueryPlan(root);
-        // }
-        // return null;
+        // single table
+        if (tableOrder.size() == 1) {
+            return buildQueryPlanForSingleTable();
+        } else {
+            return buildQueryPlanForJoinTables();
+        }
     }
 
-    public HashMap<String, HashSet<String>> addUniqueColumnsFromSelect(Select query) {
+
+    private QueryPlan buildQueryPlanForJoinTables() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'buildQueryPlanForJoinTables'");
+    }
+
+    private QueryPlan buildQueryPlanForSingleTable() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'buildQueryPlanForSingleTable'");
+    }
+
+    public void initializeIsDistinct(Select query) {
+        this.isQueryDistinct = !query.getPlainSelect().getDistinct().equals(null);
+    }
+
+    public void initializeHashmaps(List<String> tableOrder) {
+        // initialize hashmaps
+        for (String tableName : tableOrder) {
+            projectedColumnLookup.putIfAbsent(tableName, new HashSet<>());
+            singleExpressions.putIfAbsent(tableName, new ArrayList<>());
+            joinExpressions.putIfAbsent(tableName, new ArrayList<>());
+        }
+    }
+
+    public void initializeOrderBy(Select query) {
+        this.orderBy = query.getPlainSelect().getOrderByElements().stream().map(OrderByElement::toString).collect(Collectors.toList());
+
+    }
+
+    public void initializeGroupByElement(Select query) {
+        this.groupByElement = query.getPlainSelect().getGroupBy();
+    }
+
+    public void initializeSelectExpressionList(Select query) {
+        List<SelectItem<?>> selectItems = query.getPlainSelect().getSelectItems();
+        List<Expression> selectExpressions = selectItems.stream().map(SelectItem::getExpression)
+                .collect(Collectors.toList());
+        this.selectExpressionList = new ExpressionList<>(selectExpressions);
+    }
+
+    public void addUniqueColumnsFromSelect(Select query) {
         // SELECT
         HashMap<String, HashSet<String>> projectedColumns = new HashMap<>();
         List<SelectItem<?>> selectItems = query.getPlainSelect().getSelectItems();
@@ -132,10 +159,10 @@ public class QueryPlanBuilder {
             }
 
         }
-        return projectedColumns;
+        this.projectedColumnLookup = projectedColumns;
     }
 
-    public List<String> getTablesFromQuery(Select query) {
+    public void addTablesFromQuery(Select query) {
         List<String> tableList = new ArrayList<>();
         FromItem firstTable = query.getPlainSelect().getFromItem();
         tableList.add(firstTable.toString());
@@ -144,19 +171,26 @@ public class QueryPlanBuilder {
         for (Join join : joinTables) {
             tableList.add(join.toString());
         }
-        return tableList;
+        this.tableOrder = tableList;
     }
 
-    public void processWhereExpressions(Select query) {
+    public void addUniqueColumnsFromWhereExpression(Select query) {
         Expression expression = query.getPlainSelect().getWhere();
-
         List<Column> extractedColumns = getUniqueColumnsFromWhereExpression(expression);
         addExtractedColumnsToProjectedLookup(extractedColumns);
+    }
 
+    public void initializeSingleAndJoinExpressions(Select query) {
+        Expression expression = query.getPlainSelect().getWhere();
+        initializeSingleAndJoinExpressions(expression);
 
     }
 
-    public void 
+    public void initializeSingleAndJoinExpressions(Expression whereExpression) {
+        SplitExpressionDeparser splitExpressionDeparser = new SplitExpressionDeparser(singleExpressions, joinExpressions);
+        whereExpression.accept(splitExpressionDeparser);
+        this.isWhereExpressionAlwaysFalse =  splitExpressionDeparser.getExpressionIsAlwaysFalse();
+    }
 
     public void addExtractedColumnsToProjectedLookup(List<Column> extractedColumns) {
         for (Column column : extractedColumns) {
