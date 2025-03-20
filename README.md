@@ -20,7 +20,7 @@
   <a href="#credits">Credits</a>
 </p>
 
-![screenshot](images/example.png)
+![screenshot](images/blazedb_edited.GIF)
 
 ## Key Features
 
