@@ -156,12 +156,13 @@ public class BlazeDBTest {
 
 	@Test
 	public void testGroupBy() throws JSQLParserException {
-		Statement statement = CCJSqlParserUtil.parse("SELECT Enrolled.E, SUM(Enrolled.H * Enrolled.H) FROM Enrolled GROUP BY Enrolled.E");
+		Statement statement = CCJSqlParserUtil.parse("SELECT Enrolled.E, SUM(Enrolled.H * Enrolled.H) FROM Enrolled GROUP BY Enrolled.E, Enrolled.F");
 		Select select = (Select) statement;
 		GroupByElement groupByElement = select.getPlainSelect().getGroupBy();
 		ExpressionList<Expression> expressions = groupByElement.getGroupByExpressionList();
 		
-		assertTrue(expressions.getFirst() instanceof Column);
+		assertEquals("Enrolled.E", expressions.getFirst().toString());
+		assertEquals("Enrolled.F", expressions.getLast().toString());
 		
 	}
 

@@ -18,6 +18,7 @@ import ed.inf.adbs.blazedb.operator.SortOperator;
 import ed.inf.adbs.blazedb.operator.SumOperator;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
+import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.operators.arithmetic.Multiplication;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
@@ -67,6 +68,7 @@ public class QueryPlanBuilder {
 
         // GROUP BY
         initializeGroupByElement(query);
+        addUniqueColumnsFromGroupBy();
 
     }
 
@@ -320,6 +322,20 @@ public class QueryPlanBuilder {
         this.selectExpressionList = new ExpressionList<>(selectExpressions);
     }
 
+    public void addUniqueColumnsFromGroupBy() {
+        if (this.groupByElement == null) return;
+        ExpressionList<Expression> groupByExpressions = this.groupByElement.getGroupByExpressionList();
+        for (Expression groupByExpression: groupByExpressions) {
+            if (groupByExpression instanceof Column) {
+                Column column = (Column) groupByExpression;
+                String tableName = column.getTable().getName();
+                projectedColumnLookup.putIfAbsent(tableName, new HashSet<>());
+                projectedColumnLookup.get(tableName).add(column.toString());
+            }
+        }
+
+    }
+
     public void addUniqueColumnsFromSelect(Select query) {
         // SELECT
         List<SelectItem<?>> selectItems = query.getPlainSelect().getSelectItems();
@@ -353,13 +369,16 @@ public class QueryPlanBuilder {
                 }
 
                 Expression sumExpression = sumExpressionList.getFirst();
-                if (sumExpression instanceof Multiplication) {
+
+                if (sumExpression instanceof Multiplication || sumExpression instanceof Column) {
                     // extract all the columns
                     ExtractColumnDeparser extractColumnDeparser = new ExtractColumnDeparser();
                     sumExpression.accept(extractColumnDeparser);
                     List<Column> extractedColumns = extractColumnDeparser.getExtractedColumns();
                     addExtractedColumnsToProjectedLookup(extractedColumns);
+                    continue;
                 }
+
             }
 
         }
