@@ -50,6 +50,8 @@ SELECT SUM(1) FROM Student GROUP BY Student.A
 
 ## How To Use
 
+Please take a look at the samples directory to look at how the directory structure of the data and schema is supplied to the query evaluator.
+
 To clone and run this application, you'll need [Git](https://git-scm.com) and [Java openJDK](https://jdk.java.net/java-se-ri/21) installed on your computer. From your command line:
 
 ```bash
