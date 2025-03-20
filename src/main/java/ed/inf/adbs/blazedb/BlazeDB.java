@@ -5,6 +5,8 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Logger;
 
 import ed.inf.adbs.blazedb.entity.Tuple;
@@ -16,11 +18,12 @@ import net.sf.jsqlparser.statement.select.Select;
 /**
  * Lightweight in-memory database system.
  * <p>
- * Feel free to modify/move the provided functions. However, you must keep
- * the existing command-line interface, which consists of three arguments.
+ * Feel free to modify/move the provided functions. However, you must keep the
+ * existing command-line interface, which consists of three arguments.
  */
 public class BlazeDB {
     private static final Logger logger = Logger.getLogger(BlazeDB.class.getName());
+
     public static void main(String[] args) throws FileNotFoundException {
 
         if (args.length != 3) {
@@ -46,20 +49,19 @@ public class BlazeDB {
         Select select = (Select) statement;
 
         Operator root = new QueryPlanBuilder(select).build();
-//      QueryPlan queryPlan = new QueryOptimizer(queryPlans).optimize();
+        // QueryPlan queryPlan = new QueryOptimizer(queryPlans).optimize();
         execute(root, outputFile);
-
 
     }
 
     /**
-     * Example method for getting started with JSQLParser. Reads SQL statement
-     * from a file or a string and prints the SELECT and WHERE clauses to screen.
+     * Example method for getting started with JSQLParser. Reads SQL statement from
+     * a file or a string and prints the SELECT and WHERE clauses to screen.
      */
 
     public static Statement parseSQLFromFilename(String filename) {
         try {
-			return CCJSqlParserUtil.parse(new FileReader(filename));
+            return CCJSqlParserUtil.parse(new FileReader(filename));
         } catch (Exception e) {
             logger.warning("Exception occurred during parsing");
             e.printStackTrace();
@@ -68,27 +70,63 @@ public class BlazeDB {
 
     }
 
-
     /**
-     * Executes the provided query plan by repeatedly calling `getNextTuple()`
-     * on the root object of the operator tree. Writes the result to `outputFile`.
+     * Executes the provided query plan by repeatedly calling `getNextTuple()` on
+     * the root object of the operator tree. Writes the result to `outputFile`.
      *
-     * @param root       The root operator of the operator tree (assumed to be non-null).
+     * @param root       The root operator of the operator tree (assumed to be
+     *                   non-null).
      * @param outputFile The name of the file where the result will be written.
      */
     public static void execute(Operator root, String outputFile) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(outputFile))) {
 
             Tuple tuple = root.getNextTuple();
+
+            List<List<String>> table = new ArrayList<>();
+            if (tuple != null) {
+                table.add(tuple.getColumns());
+            }
+
             while (tuple != null) {
-                String csv = String.join(", ", tuple.sortRowByColumnOrderInString());
+                List<String> row = tuple.sortRowByColumnOrderInString();
+                String csv = String.join(", ", row);
                 writer.write(csv);
                 writer.newLine();
+                table.add(row);
                 tuple = root.getNextTuple();
+
             }
+            System.out.println(formatAsTable(table));
+
             root.reset();
         } catch (IOException e) {
             e.printStackTrace();
         }
+    }
+    public static String formatAsTable(List<List<String>> rows)
+    {
+        int[] maxLengths = new int[rows.get(0).size()];
+        for (List<String> row : rows)
+        {
+            for (int i = 0; i < row.size(); i++)
+            {
+                maxLengths[i] = Math.max(maxLengths[i], row.get(i).length());
+            }
+        }
+    
+        StringBuilder formatBuilder = new StringBuilder();
+        for (int maxLength : maxLengths)
+        {
+            formatBuilder.append("%-").append(maxLength + 2).append("s");
+        }
+        String format = formatBuilder.toString();
+    
+        StringBuilder result = new StringBuilder();
+        for (List<String> row : rows)
+        {
+            result.append(String.format(format, row.toArray(new String[0]))).append("\n");
+        }
+        return result.toString();
     }
 }
