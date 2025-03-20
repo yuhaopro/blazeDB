@@ -75,7 +75,7 @@ $ java -jar target/blazedb-1.0.0-jar-with-dependencies.jar <db directory> <examp
 
 ## Download
 
-You can [download](https://github.com/amitmerchant1990/electron-markdownify/releases/tag/v1.2.0) the latest installable version of Markdownify for Windows, macOS and Linux.
+You can [download](https://github.com/yuhaopro/blazeDB/releases/tag/v1.0.0) the latest installable version of blazeDB.
 
 ## Credits
 
