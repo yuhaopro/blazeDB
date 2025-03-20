@@ -1,10 +1,8 @@
 package ed.inf.adbs.blazedb.operator;
 
 import java.io.IOException;
-import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,7 +18,9 @@ public class JoinOperator extends Operator {
     private Operator rightChild;
     private boolean advanceLeftTuple = true;
     private Tuple leftTuple = null;
-    private final Expression expression;
+    private Expression expression = null;
+
+    public JoinOperator() {}
 
     public JoinOperator(Expression expression) {
         this.expression = expression;
@@ -34,7 +34,6 @@ public class JoinOperator extends Operator {
         this.rightChild = rightChild;
     }
 
-    //TODO: BUG, Left tuple should not advance every call, only advance once right has been consumed.
     public Tuple getNextTuple() {
 
         if (advanceLeftTuple) {
@@ -51,6 +50,12 @@ public class JoinOperator extends Operator {
         Tuple rightTuple = null;
 
         while ((rightTuple = rightChild.getNextTuple()) != null) {
+
+            // no expression, so cross product
+            if (this.expression == null) {
+                return join(leftTuple, rightTuple);
+            }
+
             EvaluationDeparser evaluationDeparser = new EvaluationDeparser();
             evaluationDeparser.addTuple(leftTuple);
             evaluationDeparser.addTuple(rightTuple);

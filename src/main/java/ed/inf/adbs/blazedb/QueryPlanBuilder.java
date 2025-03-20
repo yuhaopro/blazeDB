@@ -193,16 +193,29 @@ public class QueryPlanBuilder {
         List<Expression> combinedLeftJoinExpressions = new ArrayList<>();
         for (String leftTableName : leftTableNames) {
             List<Expression> leftJoinExpressions = joinExpressions.get(leftTableName);
-            combinedLeftJoinExpressions.addAll(leftJoinExpressions);
+            if (leftJoinExpressions != null) {
+                combinedLeftJoinExpressions.addAll(leftJoinExpressions);
+            }
         }
 
         List<Expression> rightJoinExpressions = joinExpressions.get(rightTableName);
-        List<Expression> commonJoinExpressions = new ArrayList<>(rightJoinExpressions);
+        List<Expression> commonJoinExpressions = new ArrayList<>();
+        if (rightJoinExpressions != null) {
+            commonJoinExpressions = new ArrayList<>(rightJoinExpressions);
+        }
 
         // get the common expression
         commonJoinExpressions.retainAll(combinedLeftJoinExpressions);
-        Expression joinExpression = combineListOfExpressions(commonJoinExpressions);
-        JoinOperator joinOperator = new JoinOperator(joinExpression);
+        JoinOperator joinOperator = null;
+        // if there is no join expression, it is a cross product, expression always true
+        if (commonJoinExpressions == null || commonJoinExpressions.size() == 0) {
+            joinOperator = new JoinOperator();
+
+        } else {
+            Expression joinExpression = combineListOfExpressions(commonJoinExpressions);
+            joinOperator = new JoinOperator(joinExpression);  
+        }
+        
         joinOperator.setLeftChild(left);
         joinOperator.setRightChild(right);
         return joinOperator;
