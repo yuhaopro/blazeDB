@@ -1,6 +1,7 @@
 package ed.inf.adbs.blazedb;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -16,14 +17,17 @@ import org.junit.Test;
 import ed.inf.adbs.blazedb.entity.Tuple;
 import ed.inf.adbs.blazedb.operator.Operator;
 import net.sf.jsqlparser.JSQLParserException;
+import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.operators.arithmetic.Multiplication;
+import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.statement.Statement;
 import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.Distinct;
 import net.sf.jsqlparser.statement.select.FromItem;
+import net.sf.jsqlparser.statement.select.GroupByElement;
 import net.sf.jsqlparser.statement.select.Join;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectItem;
@@ -149,5 +153,16 @@ public class BlazeDBTest {
 		Distinct distinct = select.getPlainSelect().getDistinct();
 		assertNull(distinct);
     }
+
+	@Test
+	public void testGroupBy() throws JSQLParserException {
+		Statement statement = CCJSqlParserUtil.parse("SELECT Enrolled.E, SUM(Enrolled.H * Enrolled.H) FROM Enrolled GROUP BY Enrolled.E");
+		Select select = (Select) statement;
+		GroupByElement groupByElement = select.getPlainSelect().getGroupBy();
+		ExpressionList<Expression> expressions = groupByElement.getGroupByExpressionList();
+		
+		assertTrue(expressions.getFirst() instanceof Column);
+		
+	}
 
 }

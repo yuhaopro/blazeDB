@@ -238,9 +238,8 @@ public class QueryPlanBuilder {
         // projection first to reduce columns, if all columns required, then don't
         // create projection.
         if (!isAllColumns) {
-            // List<String> columns = projectedColumnLookup.get(table).stream().toList();
-
-            ProjectOperator projectOperator = new ProjectOperator(columnOrder);
+            List<String> columns = projectedColumnLookup.get(tableName).stream().toList();
+            ProjectOperator projectOperator = new ProjectOperator(columns);
             projectOperator.setChild(root);
             root = projectOperator;
         }
@@ -266,6 +265,13 @@ public class QueryPlanBuilder {
             DuplicateEliminationOperator duplicateEliminationOperator = new DuplicateEliminationOperator();
             duplicateEliminationOperator.setChild(root);
             root = duplicateEliminationOperator;
+        }
+
+        // before this final projection, for SUM expressions this column needs to be added prior
+        if (!isAllColumns) {    
+            ProjectOperator projectOperator = new ProjectOperator(columnOrder);
+            projectOperator.setChild(root);
+            root = projectOperator;
         }
 
         return root;
@@ -301,9 +307,9 @@ public class QueryPlanBuilder {
     }
 
     public void initializeGroupByElement(Select query) {
-        GroupByElement groupByElement = query.getPlainSelect().getGroupBy();
-        if (this.groupByElement == null) return;
-        this.groupByElement = groupByElement;
+        GroupByElement actualGroupByElement = query.getPlainSelect().getGroupBy();
+        if (actualGroupByElement == null) return;
+        this.groupByElement = actualGroupByElement;
         isThereGroupBy = true;
     }
 
@@ -316,7 +322,6 @@ public class QueryPlanBuilder {
 
     public void addUniqueColumnsFromSelect(Select query) {
         // SELECT
-        HashMap<String, HashSet<String>> projectedColumns = new HashMap<>();
         List<SelectItem<?>> selectItems = query.getPlainSelect().getSelectItems();
         for (SelectItem<?> selectItem : selectItems) {
 
@@ -330,8 +335,8 @@ public class QueryPlanBuilder {
             if (selectExpression instanceof Column) {
                 Column column = (Column) selectExpression;
                 String tableName = column.getTable().getName();
-                projectedColumns.putIfAbsent(tableName, new HashSet<>());
-                projectedColumns.get(tableName).add(column.toString());
+                projectedColumnLookup.putIfAbsent(tableName, new HashSet<>());
+                projectedColumnLookup.get(tableName).add(column.toString());
                 columnOrder.add(column.toString());
                 continue;
             }
@@ -358,7 +363,6 @@ public class QueryPlanBuilder {
             }
 
         }
-        this.projectedColumnLookup = projectedColumns;
     }
 
     public void addTablesFromQuery(Select query) {
