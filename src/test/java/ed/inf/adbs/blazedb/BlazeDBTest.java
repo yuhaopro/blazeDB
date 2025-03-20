@@ -46,6 +46,11 @@ public class BlazeDBTest {
 		assertTrue(true);
 	}
 
+	/**
+	 * Integration test for all components using sample queries and expected outputs.
+	 * @throws JSQLParserException
+	 * @throws FileNotFoundException
+	 */
 	@Test
 	public void sampleQueries() throws JSQLParserException, FileNotFoundException {
 		String queryDirectory = "samples/input/query{0}.sql";

@@ -109,7 +109,7 @@ public class QueryPlanBuilder {
             }
         }
 
-        // early projection to reduce size of tuples.
+        // optimize query performance by early projection to reduce size of tuples
         if (!isAllColumns) {
             HashSet<String> leftColumns = projectedColumnLookup.get(leftTableName);
             if (leftColumns != null && !leftColumns.isEmpty()) {
@@ -128,6 +128,7 @@ public class QueryPlanBuilder {
         left = createJoinOperator(leftTableNameList, rightTableName, left, right);
         leftTableNameList.add(rightTableName);
 
+        // join the previous output with the next join table.
         for (int i = 2; i < tableOrder.size(); i++) {
             rightTableName = tableOrder.get(i);
             ScanOperator joinRightScan = new ScanOperator(rightTableName);
