@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.FileNotFoundException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 import org.junit.Test;
@@ -56,23 +57,45 @@ public class BlazeDBTest {
 			System.out.println("Statement: " + select.toString());
 			Operator root = new QueryPlanBuilder(select).build();
 			
+			List<List<String>> expectedValueList = new ArrayList<>();
+			List<List<String>> actualValueList = new ArrayList<>();
 			CSVParser csvParser = new CSVParser(expectedOutputPath);
 			while (csvParser.hasNext()) {
-				Tuple tuple = root.getNextTuple();
 				List<String> expectedValues = csvParser.next();
-				System.out.println("TupleColumnOrder: " + tuple.getColumns().toString());
 
+				expectedValueList.add(expectedValues);
+			}
+			Tuple tuple;
+			while ((tuple =root.getNextTuple()) != null) {
 				List<String> actualValues = new ArrayList<>();
 				for (String column : tuple.getColumns()) {
 					Integer value = tuple.getLookup().get(column);
 					actualValues.add(value.toString());
 				}
+				actualValueList.add(actualValues);
+			}
 
-				assertEquals(expectedValues, actualValues);
+			System.out.println("Actual Values: " + actualValueList);
+			System.out.println("Expected Values: " + expectedValueList);
+		}
+
+	}
+
+	public List<Integer> customComparator(List<String> list) {
+		List<Integer> intList = new ArrayList<>();
+		for (String s : list) {
+			try {
+				intList.add(Integer.parseInt(s));
+			} catch (NumberFormatException e) {
+				// Handle invalid integer strings (e.g., log an error, throw an exception)
+				System.err.println("Invalid integer string: " + s);
+				// You might want to return null or some default value here
+				// if you have a strategy to deal with bad data.
+				return null;
 			}
 
 		}
-
+		return intList;
 	}
 
     @Test

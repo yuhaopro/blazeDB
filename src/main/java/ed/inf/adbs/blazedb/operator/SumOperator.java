@@ -36,6 +36,7 @@ public class SumOperator extends Operator {
 			this.groupByExpressionList = groupByElement.getGroupByExpressionList();
 		}
 		this.selectExpressionList = selectExpressionList;
+		initialize();
 	}
 
 	/**

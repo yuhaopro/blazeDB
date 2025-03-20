@@ -25,6 +25,7 @@ public class SortOperator extends Operator {
     public SortOperator(List<String> sortColumns, boolean removeDuplicate) {
         this.sortColumns = sortColumns;
         this.removeDuplicate = removeDuplicate;
+        initialize();
     }
 
     // called before set child

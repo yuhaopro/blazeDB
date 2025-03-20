@@ -48,7 +48,7 @@ public class QueryPlanBuilder {
     private ExpressionList<Expression> selectExpressionList;
 
     public QueryPlanBuilder(Select query) {
-        query.getPlainSelect().getDistinct();
+
         // FROM
         addTablesFromQuery(query);
         initializeHashmaps(tableOrder);
@@ -82,7 +82,7 @@ public class QueryPlanBuilder {
 
 
     private Operator buildQueryPlanForJoinTables() {
-        Operator root = null;
+
         Operator left = null;
         Operator right = null;
         String leftTableName = tableOrder.get(0);
@@ -111,30 +111,96 @@ public class QueryPlanBuilder {
         if (!isAllColumns) {
             HashSet<String> leftColumns = projectedColumnLookup.get(leftTableName);
             if (leftColumns != null && !leftColumns.isEmpty()) {
-                List<String> leftColumnList = leftColumns.stream().toList();
-                ProjectOperator leftProject = new ProjectOperator(leftColumnList);
-                leftProject.setChild(left);
-                left = leftProject;
+                left = createProjectOperator(leftColumns, left);
             }
 
             HashSet<String> rightColumns = projectedColumnLookup.get(rightTableName);
             if (rightColumns != null && !rightColumns.isEmpty()) {
-                List<String> rightColumnList = rightColumns.stream().toList();
-                ProjectOperator rightProject = new ProjectOperator(rightColumnList);
-                rightProject.setChild(right);
-                right = rightProject;
+                right = createProjectOperator(rightColumns, right);
+
             }
         }
 
-        // find the join expression for the first 2 table
-        List<Expression> leftJoinExpressions = joinExpressions.get(leftTableName);
+        List<String> leftTableNameList = new ArrayList<>();
+        leftTableNameList.add(leftTableName);
+        left = createJoinOperator(leftTableNameList, rightTableName, left, right);
+        leftTableNameList.add(rightTableName);
+
+        for (int i = 2; i < tableOrder.size(); i++) {
+            rightTableName = tableOrder.get(i);
+            ScanOperator joinRightScan = new ScanOperator(rightTableName);
+            
+            List<Expression> joinRightExpressions = this.singleExpressions.get(rightTableName);
+            if (joinRightExpressions != null && !joinRightExpressions.isEmpty()) {
+                right = createSelectOperator(joinRightScan, rightTableName, joinRightExpressions);             
+            }
+
+            HashSet<String> joinRightColumns = projectedColumnLookup.get(rightTableName);
+            if (joinRightColumns != null && !joinRightColumns.isEmpty()) {
+                right = createProjectOperator(joinRightColumns, right);
+            }
+            left = createJoinOperator(leftTableNameList, rightTableName, left, right);
+            leftTableNameList.add(rightTableName);
+        }
+
+        // group by
+        if (isThereGroupBy || isThereSumFunction) {
+            SumOperator sumOperator = new SumOperator(groupByElement, selectExpressionList);
+            sumOperator.setChild(left);
+            left = sumOperator;            
+        }
+
+
+        // order by and distinct
+        if (isThereOrderBy) {
+            SortOperator sortOperator = new SortOperator(orderBy, isQueryDistinct);
+            sortOperator.setChild(left);
+            left = sortOperator;
+        
+        // just distinct
+        } else if (isQueryDistinct) {
+            DuplicateEliminationOperator duplicateEliminationOperator = new DuplicateEliminationOperator();
+            duplicateEliminationOperator.setChild(left);
+            left = duplicateEliminationOperator;
+        }
+
+        if (!isAllColumns) {
+            // List<String> columns = projectedColumnLookup.get(table).stream().toList();
+
+            ProjectOperator projectOperator = new ProjectOperator(columnOrder);
+            projectOperator.setChild(left);
+            left = projectOperator;
+        }
+
+
+        return left;
+    }
+
+    public Operator createProjectOperator(HashSet<String> columns, Operator operator) {
+        List<String> columnList = columns.stream().toList();
+        ProjectOperator projectOperator = new ProjectOperator(columnList);
+        projectOperator.setChild(operator);
+        return projectOperator;
+    }
+
+    public Operator createJoinOperator(List<String> leftTableNames, String rightTableName, Operator left, Operator right) {
+        // create the left join expressions assuming left could already be a joined tuple, which means I need to check multiple tables
+        List<Expression> combinedLeftJoinExpressions = new ArrayList<>();
+        for (String leftTableName : leftTableNames) {
+            List<Expression> leftJoinExpressions = joinExpressions.get(leftTableName);
+            combinedLeftJoinExpressions.addAll(leftJoinExpressions);
+        }
+
         List<Expression> rightJoinExpressions = joinExpressions.get(rightTableName);
-        List<Expression> commonJoinExpressions = List.copyOf(leftJoinExpressions);
+        List<Expression> commonJoinExpressions = new ArrayList<>(rightJoinExpressions);
 
         // get the common expression
-        commonJoinExpressions.retainAll(rightJoinExpressions);
+        commonJoinExpressions.retainAll(combinedLeftJoinExpressions);
         Expression joinExpression = combineListOfExpressions(commonJoinExpressions);
-        JoinOperator joinOperator = new JoinOperator(leftTableName, rightTableName, joinExpression);
+        JoinOperator joinOperator = new JoinOperator(joinExpression);
+        joinOperator.setLeftChild(left);
+        joinOperator.setRightChild(right);
+        return joinOperator;
     }
 
     public static Expression combineListOfExpressions(List<Expression> expressions) {
@@ -162,7 +228,7 @@ public class QueryPlanBuilder {
         if (isThereWhereExpressions) {
             List<Expression> expressions = this.singleExpressions.get(tableName);
             if (expressions != null && !expressions.isEmpty()) {
-                createSelectOperator(root, tableName, expressions);        
+                root = createSelectOperator(root, tableName, expressions);        
             }
 
         }

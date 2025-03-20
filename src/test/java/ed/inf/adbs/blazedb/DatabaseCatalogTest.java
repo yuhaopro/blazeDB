@@ -1,13 +1,13 @@
 package ed.inf.adbs.blazedb;
 
-import static org.junit.Assert.*;
-
-import ed.inf.adbs.blazedb.entity.TableData;
-import org.junit.Test;
+import static org.junit.Assert.assertEquals;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
+
+import org.junit.Test;
+
+import ed.inf.adbs.blazedb.entity.TableData;
 
 public class DatabaseCatalogTest {
     @Test

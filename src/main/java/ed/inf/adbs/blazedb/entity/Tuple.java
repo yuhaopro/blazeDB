@@ -17,7 +17,6 @@ import ed.inf.adbs.blazedb.DatabaseCatalog;
 public class Tuple {
     // to keep track of column order in this tuple
     private List<String> columns = new ArrayList<>();
-
     // Hashmap for quick lookups on column value.
     private HashMap<String, Integer> lookup = new HashMap<>();
 
@@ -63,23 +62,7 @@ public class Tuple {
         return sortedRow;
     }
 
-    public Tuple join(Tuple tuple) {
-        this.columns = Stream.of(this.columns, tuple.getColumns())
-            .flatMap(Collection::stream)
-            .distinct()
-            .collect(Collectors.toList());
-        
-        HashMap<String, Integer> mergedLookup = Stream.of(this.lookup, tuple.getLookup())
-                .flatMap(map -> map.entrySet().stream())
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (v1, v2) -> v1, // keeps first hashmap value if duplicate keys
-                        HashMap::new
-                ));
-        this.lookup = mergedLookup;
-        return this;
-    }
+
 
     public void print() {
         // [Student.A, Student.B, Student.C, Student.D]

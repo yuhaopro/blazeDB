@@ -29,10 +29,8 @@ public class JoinOperatorTest {
     public void getNextTupleForOneJoinExpression() throws JSQLParserException {
         String raw_expression = "Student.A = Enrolled.A";
         Expression expression = CCJSqlParserUtil.parseExpression(raw_expression);
-        String leftTable = "Student";
-        String rightTable = "Enrolled";
     
-        JoinOperator joinOperator = new JoinOperator(leftTable, rightTable, expression);
+        JoinOperator joinOperator = new JoinOperator(expression);
      
         // mock the child operators
         Tuple leftTuple = new Tuple();
@@ -79,9 +77,7 @@ public class JoinOperatorTest {
     public void getNextTupleForTwoJoinExpressions() throws JSQLParserException {
         String raw_expression = "Student.A = Enrolled.A AND Student.B = Enrolled.E";
         Expression expression = CCJSqlParserUtil.parseExpression(raw_expression);
-        String leftTable = "Student";
-        String rightTable = "Enrolled";
-        JoinOperator joinOperator = new JoinOperator(leftTable, rightTable, expression);
+        JoinOperator joinOperator = new JoinOperator(expression);
 
         // mock the child operators
         Tuple leftTuple = new Tuple();
@@ -128,9 +124,7 @@ public class JoinOperatorTest {
     public void reset() throws JSQLParserException, IOException {
         String raw_expression = "Student.A = Enrolled.A";
         Expression expression = CCJSqlParserUtil.parseExpression(raw_expression);
-        String leftTable = "Student";
-        String rightTable = "Enrolled";
-        JoinOperator joinOperator = new JoinOperator(leftTable, rightTable, expression);
+        JoinOperator joinOperator = new JoinOperator(expression);
         joinOperator.setLeftChild(leftScanOperator);
         joinOperator.setRightChild(rightScanOperator);
         joinOperator.reset();
