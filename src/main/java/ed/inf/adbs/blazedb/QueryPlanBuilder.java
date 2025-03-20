@@ -147,6 +147,7 @@ public class QueryPlanBuilder {
         if (isThereGroupBy || isThereSumFunction) {
             SumOperator sumOperator = new SumOperator(groupByElement, selectExpressionList);
             sumOperator.setChild(left);
+            sumOperator.initialize();
             left = sumOperator;            
         }
 
@@ -155,6 +156,7 @@ public class QueryPlanBuilder {
         if (isThereOrderBy) {
             SortOperator sortOperator = new SortOperator(orderBy, isQueryDistinct);
             sortOperator.setChild(left);
+            sortOperator.initialize();
             left = sortOperator;
         
         // just distinct
@@ -247,6 +249,7 @@ public class QueryPlanBuilder {
         if (isThereGroupBy || isThereSumFunction) {
             SumOperator sumOperator = new SumOperator(groupByElement, selectExpressionList);
             sumOperator.setChild(root);
+            sumOperator.initialize();
             root = sumOperator;            
         }
 
@@ -255,6 +258,7 @@ public class QueryPlanBuilder {
         if (isThereOrderBy) {
             SortOperator sortOperator = new SortOperator(orderBy, isQueryDistinct);
             sortOperator.setChild(root);
+            sortOperator.initialize();
             root = sortOperator;
         
         // just distinct

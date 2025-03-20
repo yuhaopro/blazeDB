@@ -25,10 +25,10 @@ public class SortOperator extends Operator {
     public SortOperator(List<String> sortColumns, boolean removeDuplicate) {
         this.sortColumns = sortColumns;
         this.removeDuplicate = removeDuplicate;
-        initialize();
+
     }
 
-    // called before set child
+    // called after set child
     public void initialize() {
         Tuple tuple;
         while ((tuple = child.getNextTuple()) != null) {

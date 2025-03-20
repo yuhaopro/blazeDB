@@ -7,6 +7,7 @@ import static org.junit.Assert.assertTrue;
 import java.io.FileNotFoundException;
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
@@ -75,28 +76,22 @@ public class BlazeDBTest {
 				actualValueList.add(actualValues);
 			}
 
+			Collections.sort(actualValueList, listComparator());
+			Collections.sort(expectedValueList, listComparator());
 			System.out.println("Actual Values: " + actualValueList);
 			System.out.println("Expected Values: " + expectedValueList);
-		}
-
-	}
-
-	public List<Integer> customComparator(List<String> list) {
-		List<Integer> intList = new ArrayList<>();
-		for (String s : list) {
-			try {
-				intList.add(Integer.parseInt(s));
-			} catch (NumberFormatException e) {
-				// Handle invalid integer strings (e.g., log an error, throw an exception)
-				System.err.println("Invalid integer string: " + s);
-				// You might want to return null or some default value here
-				// if you have a strategy to deal with bad data.
-				return null;
+			for (int j = 0; j < actualValueList.size(); j++) {
+				assertEquals(expectedValueList.get(0), actualValueList.get(0));
 			}
-
 		}
-		return intList;
+
+
+
 	}
+
+    public static Comparator<List<String>> listComparator() {
+        return Comparator.comparingInt(list -> list.stream().map(Integer::parseInt).mapToInt(Integer::intValue).sum());
+    }
 
     @Test
     public void testFindTables() throws JSQLParserException {

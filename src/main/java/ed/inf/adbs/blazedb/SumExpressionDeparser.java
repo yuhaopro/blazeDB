@@ -8,17 +8,22 @@ import net.sf.jsqlparser.expression.operators.arithmetic.Multiplication;
 import net.sf.jsqlparser.schema.Column;
 import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
 
-public class SumExpressionEvaluator extends ExpressionDeParser {
+public class SumExpressionDeparser extends ExpressionDeParser {
 	
 	private Tuple tuple;
 	private Stack<Integer> outputStack = new Stack<>();
 	
-	public SumExpressionEvaluator(Tuple tuple) {
+	public SumExpressionDeparser(Tuple tuple) {
 		this.tuple = tuple;
 	}
 
-	public Stack<Integer> getOutputStack() {
-		return this.outputStack;
+	public Integer getOutput() {
+		Integer output = outputStack.pop();
+		if (output == null) {
+			System.err.println("Multiplication output cannot be none!");
+			return 0;
+		}
+		return output;
 	}
 
 	@Override

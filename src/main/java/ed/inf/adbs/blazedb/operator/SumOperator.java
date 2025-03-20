@@ -7,7 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map.Entry;
 
-import ed.inf.adbs.blazedb.SumExpressionEvaluator;
+import ed.inf.adbs.blazedb.SumExpressionDeparser;
 import ed.inf.adbs.blazedb.entity.Tuple;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
@@ -36,7 +36,6 @@ public class SumOperator extends Operator {
 			this.groupByExpressionList = groupByElement.getGroupByExpressionList();
 		}
 		this.selectExpressionList = selectExpressionList;
-		initialize();
 	}
 
 	/**
@@ -58,9 +57,9 @@ public class SumOperator extends Operator {
 					Function sumFunction = (Function) selectExpression;
 					Expression sumInnerExpression = (Expression) sumFunction.getParameters().getFirst();
 
-					SumExpressionEvaluator sumExpressionEvaluator = new SumExpressionEvaluator(tuple);
+					SumExpressionDeparser sumExpressionEvaluator = new SumExpressionDeparser(tuple);
 					sumInnerExpression.accept(sumExpressionEvaluator);
-					Integer output = sumExpressionEvaluator.getOutputStack().pop();
+					Integer output = sumExpressionEvaluator.getOutput();
 
 					if (firstTupleIteration) {
 						outputTuple.getColumns().add(sumFunction.toString());
@@ -96,9 +95,9 @@ public class SumOperator extends Operator {
 				if (selectExpression instanceof Function) {
 					Function sumFunction = (Function) selectExpression;
 					Expression sumInnerExpression = (Expression) sumFunction.getParameters().getFirst();
-					SumExpressionEvaluator sumExpressionEvaluator = new SumExpressionEvaluator(tuple);
+					SumExpressionDeparser sumExpressionEvaluator = new SumExpressionDeparser(tuple);
 					sumInnerExpression.accept(sumExpressionEvaluator);
-					Integer output = sumExpressionEvaluator.getOutputStack().pop();
+					Integer output = sumExpressionEvaluator.getOutput();
 					Integer prevOutput = groupByLookup.get(keyString).get(sumFunction.toString());
 
 					// this is the first tuple Itera

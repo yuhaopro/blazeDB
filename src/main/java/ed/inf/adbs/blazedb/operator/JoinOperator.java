@@ -1,8 +1,10 @@
 package ed.inf.adbs.blazedb.operator;
 
 import java.io.IOException;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,6 +18,8 @@ import net.sf.jsqlparser.expression.Expression;
 public class JoinOperator extends Operator {
     private Operator leftChild;
     private Operator rightChild;
+    private boolean advanceLeftTuple = true;
+    private Tuple leftTuple = null;
     private final Expression expression;
 
     public JoinOperator(Expression expression) {
@@ -30,29 +34,46 @@ public class JoinOperator extends Operator {
         this.rightChild = rightChild;
     }
 
+    //TODO: BUG, Left tuple should not advance every call, only advance once right has been consumed.
     public Tuple getNextTuple() {
 
-        // left table is outer loop
-        Tuple leftTuple;
-        Tuple rightTuple;
-        while ((leftTuple = leftChild.getNextTuple()) != null) {
-            while ((rightTuple = rightChild.getNextTuple()) != null) {
-                EvaluationDeparser evaluationDeparser = new EvaluationDeparser();
-                evaluationDeparser.addTuple(leftTuple);
-                evaluationDeparser.addTuple(rightTuple);
-                expression.accept(evaluationDeparser);
+        if (advanceLeftTuple) {
+            leftTuple = leftChild.getNextTuple();
 
-                if (evaluationDeparser.getOutput()) {
-                    return join(leftTuple, rightTuple);
-                }
+            // if left tuple is null, it means the outer loop has ended, no more matching tuples
+            if (leftTuple == null) {
+                return null;
             }
-            try {
-                rightChild.reset();
-            } catch (IOException e) {
-                e.printStackTrace();
+
+            advanceLeftTuple = false;
+        }
+
+        Tuple rightTuple = null;
+
+        while ((rightTuple = rightChild.getNextTuple()) != null) {
+            EvaluationDeparser evaluationDeparser = new EvaluationDeparser();
+            evaluationDeparser.addTuple(leftTuple);
+            evaluationDeparser.addTuple(rightTuple);
+            expression.accept(evaluationDeparser);
+
+            if (evaluationDeparser.getOutput()) {
+                return join(leftTuple, rightTuple);
             }
         }
-        return null;
+
+        // no more matching right tuple with left tuple, advance left tuple and try again.
+        advanceLeftTuple = true;
+
+        // make sure to reset the right child before trying again.
+        try {
+            rightChild.reset();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // try to find the next match with the next left tuple.
+        return getNextTuple();
+        
     }
 
     /**
