@@ -13,6 +13,7 @@ public abstract class Operator {
 
     /**
      * Retrieves the next tuple from the iterator.
+     * 
      * @return A Tuple object representing the row of data, or NULL if EOF reached.
      */
     public abstract Tuple getNextTuple();

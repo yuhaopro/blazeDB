@@ -1,0 +1,1 @@
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"ed.inf.adbs.blazedb"},{"l":"ed.inf.adbs.blazedb.entity"},{"l":"ed.inf.adbs.blazedb.operator"}];updateSearchResults();

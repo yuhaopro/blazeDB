@@ -20,7 +20,8 @@ public class JoinOperator extends Operator {
     private Tuple leftTuple = null;
     private Expression expression = null;
 
-    public JoinOperator() {}
+    public JoinOperator() {
+    }
 
     public JoinOperator(Expression expression) {
         this.expression = expression;
@@ -39,7 +40,8 @@ public class JoinOperator extends Operator {
         if (advanceLeftTuple) {
             leftTuple = leftChild.getNextTuple();
 
-            // if left tuple is null, it means the outer loop has ended, no more matching tuples
+            // if left tuple is null, it means the outer loop has ended, no more matching
+            // tuples
             if (leftTuple == null) {
                 return null;
             }
@@ -66,7 +68,8 @@ public class JoinOperator extends Operator {
             }
         }
 
-        // no more matching right tuple with left tuple, advance left tuple and try again.
+        // no more matching right tuple with left tuple, advance left tuple and try
+        // again.
         advanceLeftTuple = true;
 
         // make sure to reset the right child before trying again.
@@ -78,7 +81,7 @@ public class JoinOperator extends Operator {
 
         // try to find the next match with the next left tuple.
         return getNextTuple();
-        
+
     }
 
     /**
@@ -92,19 +95,15 @@ public class JoinOperator extends Operator {
 
     public Tuple join(Tuple leftTuple, Tuple rightTuple) {
         List<String> columns = new ArrayList<>();
-        columns = Stream.of(leftTuple.getColumns(), rightTuple.getColumns())
-            .flatMap(Collection::stream)
-            .distinct()
-            .collect(Collectors.toList());
-        
+        columns = Stream.of(leftTuple.getColumns(), rightTuple.getColumns()).flatMap(Collection::stream).distinct()
+                .collect(Collectors.toList());
+
         HashMap<String, Integer> mergedLookup = Stream.of(leftTuple.getLookup(), rightTuple.getLookup())
                 .flatMap(map -> map.entrySet().stream())
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        Map.Entry::getValue,
-                        (v1, v2) -> v1, // keeps first hashmap value if duplicate keys
-                        HashMap::new
-                ));
+                .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue, (v1, v2) -> v1, // keeps first hashmap
+                                                                                                  // value if duplicate
+                                                                                                  // keys
+                        HashMap::new));
         Tuple tuple = new Tuple(columns, mergedLookup);
         return tuple;
     }

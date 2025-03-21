@@ -18,7 +18,6 @@ import ed.inf.adbs.blazedb.operator.SortOperator;
 import ed.inf.adbs.blazedb.operator.SumOperator;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
-import net.sf.jsqlparser.expression.LongValue;
 import net.sf.jsqlparser.expression.operators.arithmetic.Multiplication;
 import net.sf.jsqlparser.expression.operators.conditional.AndExpression;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
@@ -32,13 +31,16 @@ import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectItem;
 
 public class QueryPlanBuilder {
+
     private static final Logger logger = Logger.getLogger(QueryPlanBuilder.class.getName());
+
     private boolean isQueryDistinct = false;
     private boolean isAllColumns = false;
     private boolean isThereWhereExpressions = false;
     private boolean isThereGroupBy = false;
     private boolean isThereSumFunction = false;
     private boolean isThereOrderBy = false;
+
     private List<String> tableOrder = new ArrayList<>();
     private List<String> columnOrder = new ArrayList<>();
     private HashMap<String, HashSet<String>> projectedColumnLookup = new HashMap<>();
@@ -48,6 +50,17 @@ public class QueryPlanBuilder {
     private GroupByElement groupByElement;
     private ExpressionList<Expression> selectExpressionList;
 
+    /**
+     * Constructs a {@code QueryPlanBuilder} from the provided SQL {@code Select}
+     * query.
+     * 
+     * <p>
+     * This constructor parses the query and initializes various flags, hash maps,
+     * and other properties that help build the execution plan.
+     * </p>
+     * 
+     * @param query the SQL {@code Select} query to build the execution plan for
+     */
     public QueryPlanBuilder(Select query) {
 
         // FROM
@@ -72,6 +85,13 @@ public class QueryPlanBuilder {
 
     }
 
+    /**
+     * Builds and returns the query execution plan (operator tree) based on the
+     * parsed SQL query.
+     * 
+     * @return the root operator of the query plan
+     * @throws FileNotFoundException if any required data file is not found
+     */
     public Operator build() throws FileNotFoundException {
 
         // single table
@@ -82,7 +102,11 @@ public class QueryPlanBuilder {
         }
     }
 
-
+    /**
+     * Builds the query execution plan for a query with multiple tables (joins).
+     * 
+     * @return the root operator of the query plan for multiple tables
+     */
     private Operator buildQueryPlanForJoinTables() {
 
         Operator left = null;
@@ -99,13 +123,13 @@ public class QueryPlanBuilder {
         if (isThereWhereExpressions) {
             List<Expression> leftExpressions = this.singleExpressions.get(leftTableName);
             if (leftExpressions != null && !leftExpressions.isEmpty()) {
-                left = createSelectOperator(left, leftTableName, leftExpressions);             
-              
+                left = createSelectOperator(left, leftTableName, leftExpressions);
+
             }
 
             List<Expression> rightExpressions = this.singleExpressions.get(rightTableName);
             if (rightExpressions != null && !rightExpressions.isEmpty()) {
-                right = createSelectOperator(right, rightTableName, rightExpressions);             
+                right = createSelectOperator(right, rightTableName, rightExpressions);
             }
         }
 
@@ -132,10 +156,10 @@ public class QueryPlanBuilder {
         for (int i = 2; i < tableOrder.size(); i++) {
             rightTableName = tableOrder.get(i);
             ScanOperator joinRightScan = new ScanOperator(rightTableName);
-            
+
             List<Expression> joinRightExpressions = this.singleExpressions.get(rightTableName);
             if (joinRightExpressions != null && !joinRightExpressions.isEmpty()) {
-                right = createSelectOperator(joinRightScan, rightTableName, joinRightExpressions);             
+                right = createSelectOperator(joinRightScan, rightTableName, joinRightExpressions);
             }
 
             HashSet<String> joinRightColumns = projectedColumnLookup.get(rightTableName);
@@ -151,9 +175,8 @@ public class QueryPlanBuilder {
             SumOperator sumOperator = new SumOperator(groupByElement, selectExpressionList);
             sumOperator.setChild(left);
             sumOperator.initialize();
-            left = sumOperator;            
+            left = sumOperator;
         }
-
 
         // order by and distinct
         if (isThereOrderBy) {
@@ -161,8 +184,8 @@ public class QueryPlanBuilder {
             sortOperator.setChild(left);
             sortOperator.initialize();
             left = sortOperator;
-        
-        // just distinct
+
+            // just distinct
         } else if (isQueryDistinct) {
             DuplicateEliminationOperator duplicateEliminationOperator = new DuplicateEliminationOperator();
             duplicateEliminationOperator.setChild(left);
@@ -177,10 +200,17 @@ public class QueryPlanBuilder {
             left = projectOperator;
         }
 
-
         return left;
     }
 
+    /**
+     * Creates a {@code ProjectOperator} that projects the specified columns on the
+     * given operator.
+     * 
+     * @param columns  the columns to project
+     * @param operator the operator to apply the projection on
+     * @return a new {@code ProjectOperator}
+     */
     public Operator createProjectOperator(HashSet<String> columns, Operator operator) {
         List<String> columnList = columns.stream().toList();
         ProjectOperator projectOperator = new ProjectOperator(columnList);
@@ -188,8 +218,20 @@ public class QueryPlanBuilder {
         return projectOperator;
     }
 
-    public Operator createJoinOperator(List<String> leftTableNames, String rightTableName, Operator left, Operator right) {
-        // create the left join expressions assuming left could already be a joined tuple, which means I need to check multiple tables
+    /**
+     * Creates a {@code JoinOperator} that joins two tables based on the specified
+     * join conditions.
+     * 
+     * @param leftTableNames the list of left table names
+     * @param rightTableName the name of the right table
+     * @param left           the left operator
+     * @param right          the right operator
+     * @return a new {@code JoinOperator}
+     */
+    public Operator createJoinOperator(List<String> leftTableNames, String rightTableName, Operator left,
+            Operator right) {
+        // create the left join expressions assuming left could already be a joined
+        // tuple, which means I need to check multiple tables
         List<Expression> combinedLeftJoinExpressions = new ArrayList<>();
         for (String leftTableName : leftTableNames) {
             List<Expression> leftJoinExpressions = joinExpressions.get(leftTableName);
@@ -213,16 +255,23 @@ public class QueryPlanBuilder {
 
         } else {
             Expression joinExpression = combineListOfExpressions(commonJoinExpressions);
-            joinOperator = new JoinOperator(joinExpression);  
+            joinOperator = new JoinOperator(joinExpression);
         }
-        
+
         joinOperator.setLeftChild(left);
         joinOperator.setRightChild(right);
         return joinOperator;
     }
 
+    /**
+     * Combines a list of expressions into a single {@code AndExpression}.
+     * 
+     * @param expressions the list of expressions to combine
+     * @return the combined {@code AndExpression}
+     */
     public static Expression combineListOfExpressions(List<Expression> expressions) {
-        if (expressions.size() == 1) return expressions.getFirst();
+        if (expressions.size() == 1)
+            return expressions.getFirst();
 
         Expression firstExpression = expressions.get(0);
         Expression secondExpression = expressions.get(1);
@@ -234,6 +283,11 @@ public class QueryPlanBuilder {
         return andExpression;
     }
 
+    /**
+     * Builds the query execution plan for a query with a single table.
+     * 
+     * @return the root operator of the query plan for a single table
+     */
     private Operator buildQueryPlanForSingleTable() {
         Operator root = null;
 
@@ -246,7 +300,7 @@ public class QueryPlanBuilder {
         if (isThereWhereExpressions) {
             List<Expression> expressions = this.singleExpressions.get(tableName);
             if (expressions != null && !expressions.isEmpty()) {
-                root = createSelectOperator(root, tableName, expressions);        
+                root = createSelectOperator(root, tableName, expressions);
             }
 
         }
@@ -265,9 +319,8 @@ public class QueryPlanBuilder {
             SumOperator sumOperator = new SumOperator(groupByElement, selectExpressionList);
             sumOperator.setChild(root);
             sumOperator.initialize();
-            root = sumOperator;            
+            root = sumOperator;
         }
-
 
         // order by and distinct
         if (isThereOrderBy) {
@@ -275,16 +328,17 @@ public class QueryPlanBuilder {
             sortOperator.setChild(root);
             sortOperator.initialize();
             root = sortOperator;
-        
-        // just distinct
+
+            // just distinct
         } else if (isQueryDistinct) {
             DuplicateEliminationOperator duplicateEliminationOperator = new DuplicateEliminationOperator();
             duplicateEliminationOperator.setChild(root);
             root = duplicateEliminationOperator;
         }
 
-        // before this final projection, for SUM expressions this column needs to be added prior
-        if (!isAllColumns) {    
+        // before this final projection, for SUM expressions this column needs to be
+        // added prior
+        if (!isAllColumns) {
             ProjectOperator projectOperator = new ProjectOperator(columnOrder);
             projectOperator.setChild(root);
             root = projectOperator;
@@ -293,6 +347,15 @@ public class QueryPlanBuilder {
         return root;
     }
 
+    /**
+     * Creates a {@code SelectOperator} that applies a selection condition on the
+     * given operator.
+     * 
+     * @param root        the root operator to apply the selection on
+     * @param tableName   the table name for the selection
+     * @param expressions the list of selection expressions (conditions)
+     * @return a new {@code SelectOperator}
+     */
     public Operator createSelectOperator(Operator root, String tableName, List<Expression> expressions) {
         Expression combinedExpression = combineListOfExpressions(expressions);
         SelectOperator selectOperator = new SelectOperator(tableName, combinedExpression);
@@ -300,11 +363,22 @@ public class QueryPlanBuilder {
         return selectOperator;
     }
 
+    /**
+     * Initializes the DISTINCT flag based on the SQL query.
+     * 
+     * @param query the SQL {@code Select} query
+     */
     public void initializeIsDistinct(Select query) {
         if (query.getPlainSelect().getDistinct() != null)
             this.isQueryDistinct = true;
     }
 
+    /**
+     * Initializes the hash maps that store information about columns and
+     * expressions.
+     * 
+     * @param tableOrder the list of table names in the query
+     */
     public void initializeHashmaps(List<String> tableOrder) {
         // initialize hashmaps
         for (String tableName : tableOrder) {
@@ -314,6 +388,11 @@ public class QueryPlanBuilder {
         }
     }
 
+    /**
+     * Initializes the ORDER BY clause information based on the SQL query.
+     * 
+     * @param query the SQL {@code Select} query
+     */
     public void initializeOrderBy(Select query) {
         List<OrderByElement> orderByElements = query.getPlainSelect().getOrderByElements();
         if (orderByElements == null)
@@ -322,13 +401,24 @@ public class QueryPlanBuilder {
         isThereOrderBy = true;
     }
 
+    /**
+     * Initializes the GROUP BY element based on the SQL query.
+     * 
+     * @param query the SQL {@code Select} query
+     */
     public void initializeGroupByElement(Select query) {
         GroupByElement actualGroupByElement = query.getPlainSelect().getGroupBy();
-        if (actualGroupByElement == null) return;
+        if (actualGroupByElement == null)
+            return;
         this.groupByElement = actualGroupByElement;
         isThereGroupBy = true;
     }
 
+    /**
+     * Initializes the SELECT expression list based on the SQL query.
+     * 
+     * @param query the SQL {@code Select} query
+     */
     public void initializeSelectExpressionList(Select query) {
         List<SelectItem<?>> selectItems = query.getPlainSelect().getSelectItems();
         List<Expression> selectExpressions = selectItems.stream().map(SelectItem::getExpression)
@@ -336,10 +426,14 @@ public class QueryPlanBuilder {
         this.selectExpressionList = new ExpressionList<>(selectExpressions);
     }
 
+    /**
+     * Adds unique columns from the GROUP BY clause to the projected column lookup.
+     */
     public void addUniqueColumnsFromGroupBy() {
-        if (this.groupByElement == null) return;
+        if (this.groupByElement == null)
+            return;
         ExpressionList<Expression> groupByExpressions = this.groupByElement.getGroupByExpressionList();
-        for (Expression groupByExpression: groupByExpressions) {
+        for (Expression groupByExpression : groupByExpressions) {
             if (groupByExpression instanceof Column) {
                 Column column = (Column) groupByExpression;
                 String tableName = column.getTable().getName();
@@ -350,6 +444,11 @@ public class QueryPlanBuilder {
 
     }
 
+    /**
+     * Adds unique columns from the SELECT clause to the projected column lookup.
+     * 
+     * @param query the SQL {@code Select} query
+     */
     public void addUniqueColumnsFromSelect(Select query) {
         // SELECT
         List<SelectItem<?>> selectItems = query.getPlainSelect().getSelectItems();
@@ -398,6 +497,11 @@ public class QueryPlanBuilder {
         }
     }
 
+    /**
+     * Adds tables from the FROM of the query to the table order list.
+     * 
+     * @param query the SQL {@code Select} query
+     */
     public void addTablesFromQuery(Select query) {
         List<String> tableList = new ArrayList<>();
         FromItem firstTable = query.getPlainSelect().getFromItem();
@@ -413,6 +517,12 @@ public class QueryPlanBuilder {
         this.tableOrder = tableList;
     }
 
+    /**
+     * Processes the WHERE expressions from the query and adds them to the list of
+     * expressions.
+     * 
+     * @param query the SQL {@code Select} query
+     */
     public void processWhereExpression(Select query) {
         Expression whereExpression = query.getPlainSelect().getWhere();
         if (whereExpression == null)
@@ -427,7 +537,12 @@ public class QueryPlanBuilder {
         this.isThereWhereExpressions = true;
     }
 
-
+    /**
+     * Adds columns extracted from the query to the projected column lookup hashmap.
+     * 
+     * @param extractedColumns the list of columns to be added to projection column
+     *                         lookup
+     */
     public void addExtractedColumnsToProjectedLookup(List<Column> extractedColumns) {
         for (Column column : extractedColumns) {
             String tableName = column.getTable().getName();
@@ -436,6 +551,11 @@ public class QueryPlanBuilder {
         }
     }
 
+    /**
+     * Retrieves the columns found in the WHERE clause.
+     * 
+     * @param whereExpression takes a WHERE expression from the {@code SELECT} query
+     */
     public List<Column> getUniqueColumnsFromWhereExpression(Expression whereExpression) {
         ExtractColumnDeparser extractColumnDeparser = new ExtractColumnDeparser();
         whereExpression.accept(extractColumnDeparser);

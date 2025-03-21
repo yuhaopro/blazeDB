@@ -26,11 +26,35 @@ import net.sf.jsqlparser.statement.select.GroupByElement;
 import net.sf.jsqlparser.statement.select.Select;
 import net.sf.jsqlparser.statement.select.SelectItem;
 
+/**
+ * Unit tests for the {@link SumOperator} class that is part of the BlazeDB
+ * system. This class tests the behavior of the {@link SumOperator} under
+ * various query conditions, including queries with and without GROUP BY
+ * clauses, as well as queries where the operator needs to handle aggregation
+ * and resetting operations.
+ */
 @RunWith(MockitoJUnitRunner.class)
 public class SumOperatorTest {
     @Mock
     ScanOperator scanOperator;
 
+    /**
+     * Tests the behavior of the {@link SumOperator} with a query that uses a GROUP
+     * BY clause.
+     * 
+     * <p>
+     * The test simulates a query of the form:
+     * </p>
+     * 
+     * <pre>
+     * SELECT Student.A, SUM(Student.B * Student.B) FROM Student GROUP BY Student.A;
+     * </pre>
+     * 
+     * It verifies that the SUM operator correctly computes the sum of squared
+     * values for each group of Student.A.
+     * 
+     * @throws JSQLParserException if there is an error parsing the SQL query.
+     */
     @Test
     public void withGroupByQuery() throws JSQLParserException {
         Tuple firstTuple = new Tuple();
@@ -84,7 +108,6 @@ public class SumOperatorTest {
         // group by, it will check for sum functions only
         sumOperator.initialize();
 
-
         // Student.A, SUM(Student.B * Student.B)
         Tuple tuple = sumOperator.getNextTuple();
         int tupleValueA = tuple.getLookup().get("Student.A");
@@ -105,6 +128,23 @@ public class SumOperatorTest {
 
     }
 
+    /**
+     * Tests the behavior of the {@link SumOperator} when there is no GROUP BY
+     * clause in the query.
+     * 
+     * <p>
+     * The test simulates a query of the form:
+     * </p>
+     * 
+     * <pre>
+     * SELECT SUM(Student.B), SUM(Student.A) FROM Student;
+     * </pre>
+     * 
+     * It verifies that the SUM operator computes the sum of the specified columns
+     * without applying any grouping.
+     * 
+     * @throws JSQLParserException if there is an error parsing the SQL query.
+     */
     @Test
     public void noGroupByQuery() throws JSQLParserException {
         Tuple firstTuple = new Tuple();
@@ -142,7 +182,7 @@ public class SumOperatorTest {
         Select select = (Select) statement;
 
         // extract the SUM Expression
-        GroupByElement groupByElement = select.getPlainSelect().getGroupBy(); 
+        GroupByElement groupByElement = select.getPlainSelect().getGroupBy();
 
         List<SelectItem<?>> selectItems = select.getPlainSelect().getSelectItems();
         List<Expression> selectExpressions = selectItems.stream().map(SelectItem::getExpression)
@@ -165,7 +205,23 @@ public class SumOperatorTest {
         assertNull(expectedSecondTuple);
     }
 
-
+    /**
+     * Tests the behavior of the {@link SumOperator} with a query that uses GROUP
+     * BY, but no aggregation functions (i.e., no SUM function).
+     * 
+     * <p>
+     * The test simulates a query of the form:
+     * </p>
+     * 
+     * <pre>
+     * SELECT Student.A, Student.B FROM Student GROUP BY Student.A, Student.B;
+     * </pre>
+     * 
+     * It verifies that the SUM operator handles grouping correctly and resets when
+     * required.
+     * 
+     * @throws JSQLParserException if there is an error parsing the SQL query.
+     */
     @Test
     public void groupByNoSumQueryAndReset() throws JSQLParserException {
         Tuple firstTuple = new Tuple();
@@ -203,7 +259,7 @@ public class SumOperatorTest {
         Select select = (Select) statement;
 
         // extract the SUM Expression
-        GroupByElement groupByElement = select.getPlainSelect().getGroupBy(); 
+        GroupByElement groupByElement = select.getPlainSelect().getGroupBy();
 
         List<SelectItem<?>> selectItems = select.getPlainSelect().getSelectItems();
         List<Expression> selectExpressions = selectItems.stream().map(SelectItem::getExpression)
@@ -216,7 +272,6 @@ public class SumOperatorTest {
         sumOperator.setChild(scanOperator);
 
         sumOperator.initialize();
-
 
         Tuple tuple = sumOperator.getNextTuple();
         int tupleValueA = tuple.getLookup().get("Student.A");
@@ -232,7 +287,6 @@ public class SumOperatorTest {
         assertEquals(1, secondTupleValueA);
         assertEquals(5, secondTupleValueB);
 
-
         Tuple expectedThirdTuple = sumOperator.getNextTuple();
         int thirdTupleValueA = expectedThirdTuple.getLookup().get("Student.A");
         int thirdTupleValueB = expectedThirdTuple.getLookup().get("Student.B");
@@ -246,8 +300,7 @@ public class SumOperatorTest {
         int fourthTupleValueB = expectedFourthTuple.getLookup().get("Student.B");
         assertEquals(2, tuple.getColumns().size());
         assertEquals(1, fourthTupleValueA);
-        assertEquals(1, fourthTupleValueB); 
+        assertEquals(1, fourthTupleValueB);
     }
-
 
 }
