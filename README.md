@@ -14,6 +14,7 @@
 </p>
 
 <p align="center">
+  <a href="#tasks">Tasks</a> •
   <a href="#key-features">Key Features</a> •
   <a href="#how-to-use">How To Use</a> •
   <a href="#download">Download</a> •
@@ -21,6 +22,25 @@
 </p>
 
 ![screenshot](images/blazedb_edited.GIF)
+
+## Tasks
+### Task 1
+* The join conditions are extracted using the `SplitExpressionDeparser`. A join condition will only consist of columns from different tables. This can be identified by evaluating the left and right columns and getting their table names. The extracted join condition will be stored in a hashmap with the table as it's key.
+
+```
+Student: [Student.A = Enrolled.A, Student.B = Course.D]
+
+Enrolled: [Student.A = Enrolled.A]
+
+Course: [Student.B = Course.D]
+```
+
+I can then find the list intersections in 2 tables to be joined, identifying the correct join expression. If there are multiple join expressions for the same 2 tables, it will be combined together to form 1 single join expression using AND.
+
+### Task 2
+* My optimization rule involves using projection to reduce the total number of tuples that will be processed prior to join, sort and group by operations. The projection captures all the columns that are required in the SELECT, WHERE and GROUP BY clause, and there wouldn't be any missing columns further up in the pipeline.
+
+* I also extracted single table expressions and store them into a hashmap which can be combined together later. This ensures I only create 1 Select Operator for each Table, and thus would result in a smaller memory allocation on the heap due to fewer objects. This will help reduce the possibility of out of memory errors.
 
 ## Key Features
 
