@@ -10,7 +10,6 @@
 <p align="center">
     <img src="https://img.shields.io/badge/java-%23ED8B00.svg?style=for-the-badge&logo=openjdk&logoColor=white"
          alt="Java openjdk 21.0.6">
-
 </p>
 
 <p align="center">
@@ -82,7 +81,7 @@ sudo apt install git
 sudo apt install openjdk-21-jre-headless:amd64
 
 # Clone this repository
-$ git clone https://github.com/yuhaopro/blazeDB
+$ git clone https://github.com/yuhaopro/blazeDB.git
 
 # Go into the repository
 $ cd blazeDB
@@ -106,9 +105,5 @@ This is part of my advanced database coursework in the University of Edinburgh. 
 This software uses the following open source packages:
 
 - [jsqparser](https://github.com/JSQLParser/JSqlParser)
-
-## License
-
-MIT
 
 ---
