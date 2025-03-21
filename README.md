@@ -41,6 +41,8 @@ I can then find the list intersections in 2 tables to be joined, identifying the
 
 * I also extracted single table expressions and store them into a hashmap which can be combined together later. This ensures I only create 1 Select Operator for each Table, and thus would result in a smaller memory allocation on the heap due to fewer objects. This will help reduce the possibility of out of memory errors.
 
+* Since I am only required to account for SUM aggregate queries, then when I build the group by hashmap, I do not need to store a list of all the tuple values with the same group by value, and can instead simply perform summation directly on the prev value. This reduces a lot of memory usage when building the hashmap. 
+
 ## Key Features
 
 * Support SQL queries involving selection and projection, distinct, sort by and group by.
