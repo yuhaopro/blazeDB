@@ -1,1 +1,0 @@
-SELECT * FROM Student, Enrolled ORDER BY Student.A, Enrolled.A;

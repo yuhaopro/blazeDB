@@ -136,7 +136,7 @@ public class BlazeDB {
                 tuple = root.getNextTuple();
             }
 
-            System.out.println(formatAsTable(table));
+            // System.out.println(formatAsTable(table));
 
             root.reset();
         } catch (IOException e) {

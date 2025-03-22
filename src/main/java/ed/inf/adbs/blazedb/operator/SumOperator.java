@@ -13,6 +13,7 @@ import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.Function;
 import net.sf.jsqlparser.expression.operators.relational.ExpressionList;
 import net.sf.jsqlparser.schema.Column;
+import net.sf.jsqlparser.statement.select.AllColumns;
 import net.sf.jsqlparser.statement.select.GroupByElement;
 
 /**
@@ -133,10 +134,21 @@ public class SumOperator extends Operator {
 			String keyString = buildKey(tuple);
 			groupByLookup.putIfAbsent(keyString, new HashMap<>());
 			for (Expression selectExpression : selectExpressionList) {
+
+				if (selectExpression instanceof AllColumns) {
+					for (Expression groupBy: groupByExpressionList) {
+						Column column = (Column) groupBy;
+						Integer columnValue = tuple.getLookup().get(column.toString());
+						groupByLookup.get(keyString).put(column.toString(), columnValue);
+					}
+					continue;
+				}
+
 				if (selectExpression instanceof Column) {
 					Column column = (Column) selectExpression;
 					Integer value = tuple.getLookup().get(column.toString());
 					groupByLookup.get(keyString).put(column.toString(), value);
+					continue;
 				}
 				if (selectExpression instanceof Function) {
 					Function sumFunction = (Function) selectExpression;
@@ -170,6 +182,16 @@ public class SumOperator extends Operator {
 			HashMap<String, Integer> lookup = new HashMap<>();
 			for (Expression selectExpression : selectExpressionList) {
 				HashMap<String, Integer> value = entry.getValue();
+				if (selectExpression instanceof AllColumns) {
+					for (Expression groupBy: groupByExpressionList) {
+						Column column = (Column) groupBy;
+						columns.add(column.toString());
+						Integer columnValue = value.get(column.toString());
+						lookup.put(column.toString(), columnValue);
+						continue;
+					}
+				}
+
 				if (selectExpression instanceof Column) {
 					Column column = (Column) selectExpression;
 					columns.add(column.toString());
