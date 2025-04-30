@@ -5,7 +5,6 @@ import java.io.IOException;
 import ed.inf.adbs.blazedb.EvaluationDeparser;
 import ed.inf.adbs.blazedb.entity.Tuple;
 import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.util.deparser.ExpressionDeParser;
 
 /**
  * * The {@code SelectOperator} class represents a relational algebra selection

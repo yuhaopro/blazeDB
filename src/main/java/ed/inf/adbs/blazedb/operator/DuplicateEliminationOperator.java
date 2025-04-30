@@ -64,10 +64,19 @@ public class DuplicateEliminationOperator extends Operator {
         Tuple tuple;
         // Process each tuple from the child operator
         while ((tuple = child.getNextTuple()) != null) {
+
+            // by default assume the tuple is a duplicate
             boolean hasDuplicate = true;
             List<String> columns = tuple.getColumns();
 
             // Check for duplication in each column
+            /**
+             * {
+             *      "Column A": {
+             *              "1": True
+             *          }
+             * }
+             */
             for (String column : columns) {
                 // Initialize hash table for the column if it doesn't exist
                 hashTable.putIfAbsent(column, new HashMap<>());

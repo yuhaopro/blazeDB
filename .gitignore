@@ -3,3 +3,5 @@
 *.zip
 .vscode
 target
+output.csv
+test.sql

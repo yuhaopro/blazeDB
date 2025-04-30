@@ -178,6 +178,14 @@ public class QueryPlanBuilder {
             left = sumOperator;
         }
 
+        if (!isAllColumns) {
+            // List<String> columns = projectedColumnLookup.get(table).stream().toList();
+
+            ProjectOperator projectOperator = new ProjectOperator(columnOrder);
+            projectOperator.setChild(left);
+            left = projectOperator;
+        }
+
         // order by and distinct
         if (isThereOrderBy) {
             SortOperator sortOperator = new SortOperator(orderBy, isQueryDistinct);
@@ -190,14 +198,6 @@ public class QueryPlanBuilder {
             DuplicateEliminationOperator duplicateEliminationOperator = new DuplicateEliminationOperator();
             duplicateEliminationOperator.setChild(left);
             left = duplicateEliminationOperator;
-        }
-
-        if (!isAllColumns) {
-            // List<String> columns = projectedColumnLookup.get(table).stream().toList();
-
-            ProjectOperator projectOperator = new ProjectOperator(columnOrder);
-            projectOperator.setChild(left);
-            left = projectOperator;
         }
 
         return left;
@@ -322,6 +322,14 @@ public class QueryPlanBuilder {
             root = sumOperator;
         }
 
+        // before this final projection, for SUM expressions this column needs to be
+        // added prior
+        if (!isAllColumns) {
+            ProjectOperator projectOperator = new ProjectOperator(columnOrder);
+            projectOperator.setChild(root);
+            root = projectOperator;
+        }
+
         // order by and distinct
         if (isThereOrderBy) {
             SortOperator sortOperator = new SortOperator(orderBy, isQueryDistinct);
@@ -334,14 +342,6 @@ public class QueryPlanBuilder {
             DuplicateEliminationOperator duplicateEliminationOperator = new DuplicateEliminationOperator();
             duplicateEliminationOperator.setChild(root);
             root = duplicateEliminationOperator;
-        }
-
-        // before this final projection, for SUM expressions this column needs to be
-        // added prior
-        if (!isAllColumns) {
-            ProjectOperator projectOperator = new ProjectOperator(columnOrder);
-            projectOperator.setChild(root);
-            root = projectOperator;
         }
 
         return root;
