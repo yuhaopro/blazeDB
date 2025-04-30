@@ -154,20 +154,25 @@ public class QueryPlanBuilder {
 
         // join the previous output with the next join table.
         for (int i = 2; i < tableOrder.size(); i++) {
-            rightTableName = tableOrder.get(i);
-            ScanOperator joinRightScan = new ScanOperator(rightTableName);
 
-            List<Expression> joinRightExpressions = this.singleExpressions.get(rightTableName);
-            if (joinRightExpressions != null && !joinRightExpressions.isEmpty()) {
-                right = createSelectOperator(joinRightScan, rightTableName, joinRightExpressions);
+            // gets Enrolled
+            String newRightTableName = tableOrder.get(i);
+
+            // Enrolled Scan Operator
+            ScanOperator newJoinRightScan = new ScanOperator(newRightTableName);
+            right = newJoinRightScan;
+
+            List<Expression> newJoinRightExpressions = this.singleExpressions.get(newRightTableName);
+            if (newJoinRightExpressions != null && !newJoinRightExpressions.isEmpty()) {
+                right = createSelectOperator(newJoinRightScan, newRightTableName, newJoinRightExpressions);
             }
 
-            HashSet<String> joinRightColumns = projectedColumnLookup.get(rightTableName);
-            if (joinRightColumns != null && !joinRightColumns.isEmpty()) {
-                right = createProjectOperator(joinRightColumns, right);
+            HashSet<String> newJoinRightColumns = projectedColumnLookup.get(newRightTableName);
+            if (newJoinRightColumns != null && !newJoinRightColumns.isEmpty()) {
+                right = createProjectOperator(newJoinRightColumns, right);
             }
-            left = createJoinOperator(leftTableNameList, rightTableName, left, right);
-            leftTableNameList.add(rightTableName);
+            left = createJoinOperator(leftTableNameList, newRightTableName, left, right);
+            leftTableNameList.add(newRightTableName);
         }
 
         // group by
